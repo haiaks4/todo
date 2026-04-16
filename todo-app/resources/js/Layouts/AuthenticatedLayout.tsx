@@ -1,4 +1,3 @@
-import ApplicationLogo from '@/Components/ApplicationLogo';
 import Dropdown from '@/Components/Dropdown';
 import NavLink from '@/Components/NavLink';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
@@ -21,8 +20,11 @@ export default function Authenticated({
                     <div className="flex h-16 justify-between">
                         <div className="flex">
                             <div className="flex shrink-0 items-center">
-                                <Link href="/">
-                                    <ApplicationLogo className="block h-9 w-auto fill-current text-gray-800 dark:text-gray-200" />
+                                <Link
+                                    href={route('dashboard')}
+                                    className="text-lg font-bold text-gray-800 dark:text-white"
+                                >
+                                    TODO アプリ
                                 </Link>
                             </div>
 
@@ -32,6 +34,12 @@ export default function Authenticated({
                                     active={route().current('dashboard')}
                                 >
                                     Dashboard
+                                </NavLink>
+                                <NavLink
+                                    href={route('task.index')}
+                                    active={route().current('task.index')}
+                                >
+                                    タスク管理
                                 </NavLink>
                             </div>
                         </div>
@@ -67,14 +75,14 @@ export default function Authenticated({
                                         <Dropdown.Link
                                             href={route('profile.edit')}
                                         >
-                                            Profile
+                                            マイページ
                                         </Dropdown.Link>
                                         <Dropdown.Link
                                             href={route('logout')}
                                             method="post"
                                             as="button"
                                         >
-                                            Log Out
+                                            ログアウト
                                         </Dropdown.Link>
                                     </Dropdown.Content>
                                 </Dropdown>
@@ -136,6 +144,12 @@ export default function Authenticated({
                             active={route().current('dashboard')}
                         >
                             Dashboard
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            href={route('task.index')}
+                            active={route().current('task.index')}
+                        >
+                            タスク管理
                         </ResponsiveNavLink>
                     </div>
 

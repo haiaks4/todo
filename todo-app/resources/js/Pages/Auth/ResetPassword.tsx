@@ -1,6 +1,5 @@
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, useForm } from '@inertiajs/react';
@@ -22,7 +21,6 @@ export default function ResetPassword({
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
-
         post(route('password.store'), {
             onFinish: () => reset('password', 'password_confirmation'),
         });
@@ -30,12 +28,18 @@ export default function ResetPassword({
 
     return (
         <GuestLayout>
-            <Head title="Reset Password" />
+            <Head title="パスワード再設定" />
 
-            <form onSubmit={submit}>
+            <div className="mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">パスワード再設定</h2>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    新しいパスワードを入力してください
+                </p>
+            </div>
+
+            <form onSubmit={submit} className="space-y-5">
                 <div>
-                    <InputLabel htmlFor="email" value="Email" />
-
+                    <InputLabel htmlFor="email" value="メールアドレス" />
                     <TextInput
                         id="email"
                         type="email"
@@ -45,13 +49,11 @@ export default function ResetPassword({
                         autoComplete="username"
                         onChange={(e) => setData('email', e.target.value)}
                     />
-
                     <InputError message={errors.email} className="mt-2" />
                 </div>
 
-                <div className="mt-4">
-                    <InputLabel htmlFor="password" value="Password" />
-
+                <div>
+                    <InputLabel htmlFor="password" value="新しいパスワード" />
                     <TextInput
                         id="password"
                         type="password"
@@ -62,38 +64,29 @@ export default function ResetPassword({
                         isFocused={true}
                         onChange={(e) => setData('password', e.target.value)}
                     />
-
                     <InputError message={errors.password} className="mt-2" />
                 </div>
 
-                <div className="mt-4">
-                    <InputLabel
-                        htmlFor="password_confirmation"
-                        value="Confirm Password"
-                    />
-
+                <div>
+                    <InputLabel htmlFor="password_confirmation" value="新しいパスワード（確認）" />
                     <TextInput
                         type="password"
                         name="password_confirmation"
                         value={data.password_confirmation}
                         className="mt-1 block w-full"
                         autoComplete="new-password"
-                        onChange={(e) =>
-                            setData('password_confirmation', e.target.value)
-                        }
+                        onChange={(e) => setData('password_confirmation', e.target.value)}
                     />
-
-                    <InputError
-                        message={errors.password_confirmation}
-                        className="mt-2"
-                    />
+                    <InputError message={errors.password_confirmation} className="mt-2" />
                 </div>
 
-                <div className="mt-4 flex items-center justify-end">
-                    <PrimaryButton className="ms-4" disabled={processing}>
-                        Reset Password
-                    </PrimaryButton>
-                </div>
+                <button
+                    type="submit"
+                    disabled={processing}
+                    className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
+                >
+                    {processing ? '更新中...' : 'パスワードを更新'}
+                </button>
             </form>
         </GuestLayout>
     );

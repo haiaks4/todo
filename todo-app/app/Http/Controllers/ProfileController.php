@@ -21,7 +21,16 @@ class ProfileController extends Controller
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => session('status'),
+            'remindEnabled' => $request->user()->remind_enabled,
         ]);
+    }
+
+    public function updateRemind(Request $request): RedirectResponse
+    {
+        $request->validate(['remind_enabled' => 'required|boolean']);
+        $request->user()->update(['remind_enabled' => $request->remind_enabled]);
+
+        return Redirect::route('profile.edit');
     }
 
     /**
