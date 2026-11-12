@@ -21,8 +21,13 @@ class Task extends Model
         'order',
     ];
 
+    /**
+     * due_date はタイムゾーン無しのローカル日時（APP_TIMEZONE）として扱う。
+     * フロントエンドの datetime-local 入力とそのまま相互変換できるよう、
+     * オフセット無しの ISO 8601 形式でシリアライズする。
+     */
     protected $casts = [
-        'due_date' => 'datetime',
+        'due_date' => 'datetime:Y-m-d\\TH:i:s',
     ];
 
     public function user()

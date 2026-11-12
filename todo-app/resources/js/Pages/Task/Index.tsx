@@ -3,7 +3,7 @@ import TaskDetailModal from '@/Components/Task/TaskDetailModal';
 import TaskFormModal from '@/Components/Task/TaskFormModal';
 import TaskItem from '@/Components/Task/TaskItem';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { api } from '@/lib/api';
+import { api, fetcher, getErrorMessage } from '@/lib/api';
 import { Tag, Task } from '@/types';
 import {
     DndContext,
@@ -21,11 +21,8 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { Head } from '@inertiajs/react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import useSWR from 'swr';
-
-const fetcher = (url: string) =>
-    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).then((r) => r.json());
 
 type FilterStatus = '' | 'todo' | 'in_progress' | 'done';
 type FilterPriority = '' | 'high' | 'medium' | 'low';
@@ -33,6 +30,7 @@ type FilterPriority = '' | 'high' | 'medium' | 'low';
 export default function TaskIndex() {
     // フィルター状態
     const [search, setSearch] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [filterStatus, setFilterStatus] = useState<FilterStatus>('');
     const [filterTagId, setFilterTagId] = useState('');
     const [filterPriority, setFilterPriority] = useState<FilterPriority>('');
@@ -49,30 +47,54 @@ export default function TaskIndex() {
     // ローカルタスクリスト（D&D用）
     const [localTasks, setLocalTasks] = useState<Task[]>([]);
 
+    // 検索入力はキー入力ごとにリクエストしないよう遅延させる
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+        return () => clearTimeout(timer);
+    }, [search]);
+
     // SWRでタスク取得
     const taskParams = new URLSearchParams();
-    if (search) taskParams.set('search', search);
+    if (debouncedSearch) taskParams.set('search', debouncedSearch);
     if (filterStatus) taskParams.set('status', filterStatus);
     if (filterTagId) taskParams.set('tag_id', filterTagId);
     if (filterPriority) taskParams.set('priority', filterPriority);
 
     const {
         data: tasks,
+        error: tasksError,
         mutate: mutateTasks,
         isLoading: tasksLoading,
-    } = useSWR<Task[]>(`/api/tasks?${taskParams.toString()}`, fetcher);
+    } = useSWR<Task[]>(`/api/tasks?${taskParams.toString()}`, fetcher, {
+        keepPreviousData: true,
+    });
 
-    const { data: tags, mutate: mutateTags } = useSWR<Tag[]>('/api/tags', fetcher);
+    const { data: tags, mutate: mutateTags } = useSWR<Tag[]>(
+        '/api/tags',
+        fetcher,
+    );
 
-    // SWRデータが変わったらローカル状態に同期
+    // SWRデータが変わったらローカル状態に同期し、表示外になった選択は解除する
     useEffect(() => {
-        if (tasks) setLocalTasks(tasks);
+        if (!tasks) return;
+        setLocalTasks(tasks);
+        const visibleIds = new Set(tasks.map((t) => t.id));
+        setSelectedIds((prev) => {
+            const next = prev.filter((id) => visibleIds.has(id));
+            return next.length === prev.length ? prev : next;
+        });
     }, [tasks]);
+
+    // 最新のローカルリストを D&D ハンドラから参照する
+    const localTasksRef = useRef<Task[]>(localTasks);
+    localTasksRef.current = localTasks;
 
     // D&Dセンサー
     const sensors = useSensors(
         useSensor(PointerSensor),
-        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        }),
     );
 
     const handleDragEnd = useCallback(
@@ -80,20 +102,33 @@ export default function TaskIndex() {
             const { active, over } = event;
             if (!over || active.id === over.id) return;
 
-            setLocalTasks((prev) => {
-                const oldIndex = prev.findIndex((t) => t.id === active.id);
-                const newIndex = prev.findIndex((t) => t.id === over.id);
-                const next = arrayMove(prev, oldIndex, newIndex);
-                // DBに保存
-                api.tasks.reorder(next.map((t) => t.id));
-                return next;
-            });
+            const prev = localTasksRef.current;
+            const oldIndex = prev.findIndex((t) => t.id === active.id);
+            const newIndex = prev.findIndex((t) => t.id === over.id);
+            if (oldIndex < 0 || newIndex < 0) return;
+
+            const next = arrayMove(prev, oldIndex, newIndex);
+            setLocalTasks(next);
+
+            // DBに保存（失敗したらサーバーの状態に戻す）
+            try {
+                await api.tasks.reorder(next.map((t) => t.id));
+                mutateTasks(next, { revalidate: false });
+            } catch (e) {
+                alert(getErrorMessage(e));
+                setLocalTasks(prev);
+                mutateTasks();
+            }
         },
-        [],
+        [mutateTasks],
     );
 
     const handleStatusChange = async (task: Task, status: Task['status']) => {
-        await api.tasks.update(task.id, { status });
+        try {
+            await api.tasks.update(task.id, { status });
+        } catch (e) {
+            alert(getErrorMessage(e));
+        }
         mutateTasks();
     };
 
@@ -114,9 +149,18 @@ export default function TaskIndex() {
 
     const handleBulkDelete = async () => {
         if (selectedIds.length === 0) return;
-        if (!confirm(`選択した ${selectedIds.length} 件のタスクを削除しますか？`)) return;
-        await api.tasks.bulkDelete(selectedIds);
-        setSelectedIds([]);
+        if (
+            !confirm(
+                `選択した ${selectedIds.length} 件のタスクを削除しますか？`,
+            )
+        )
+            return;
+        try {
+            await api.tasks.bulkDelete(selectedIds);
+            setSelectedIds([]);
+        } catch (e) {
+            alert(getErrorMessage(e));
+        }
         mutateTasks();
     };
 
@@ -138,7 +182,6 @@ export default function TaskIndex() {
 
             <div className="py-8">
                 <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-
                     {/* ツールバー */}
                     <div className="mb-4 flex flex-wrap items-center gap-2">
                         <button
@@ -178,7 +221,9 @@ export default function TaskIndex() {
 
                         <select
                             value={filterStatus}
-                            onChange={(e) => setFilterStatus(e.target.value as FilterStatus)}
+                            onChange={(e) =>
+                                setFilterStatus(e.target.value as FilterStatus)
+                            }
                             className="min-w-[7.5rem] rounded-md border border-gray-300 px-3 py-2 pr-8 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                         >
                             <option value="">全ステータス</option>
@@ -189,7 +234,11 @@ export default function TaskIndex() {
 
                         <select
                             value={filterPriority}
-                            onChange={(e) => setFilterPriority(e.target.value as FilterPriority)}
+                            onChange={(e) =>
+                                setFilterPriority(
+                                    e.target.value as FilterPriority,
+                                )
+                            }
                             className="min-w-[6.5rem] rounded-md border border-gray-300 px-3 py-2 pr-8 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                         >
                             <option value="">全優先度</option>
@@ -225,13 +274,27 @@ export default function TaskIndex() {
                                 className="h-4 w-4 rounded border-gray-300 text-indigo-600"
                             />
                             <span>全選択</span>
-                            <span className="ml-auto">{localTasks.length} 件</span>
+                            <span className="ml-auto">
+                                {localTasks.length} 件
+                            </span>
                         </div>
                     )}
 
                     {/* タスクリスト */}
-                    {tasksLoading ? (
-                        <div className="py-12 text-center text-gray-400">読み込み中...</div>
+                    {tasksError && !tasks ? (
+                        <div className="rounded-lg border border-red-200 bg-red-50 py-6 text-center text-sm text-red-600">
+                            {getErrorMessage(tasksError)}
+                            <button
+                                onClick={() => mutateTasks()}
+                                className="ml-3 font-medium underline"
+                            >
+                                再読み込み
+                            </button>
+                        </div>
+                    ) : tasksLoading && !tasks ? (
+                        <div className="py-12 text-center text-gray-400">
+                            読み込み中...
+                        </div>
                     ) : localTasks.length === 0 ? (
                         <div className="rounded-lg border border-dashed border-gray-300 py-12 text-center text-gray-400 dark:border-gray-600">
                             タスクがありません
@@ -251,7 +314,9 @@ export default function TaskIndex() {
                                         <TaskItem
                                             key={task.id}
                                             task={task}
-                                            selected={selectedIds.includes(task.id)}
+                                            selected={selectedIds.includes(
+                                                task.id,
+                                            )}
                                             onSelect={handleSelect}
                                             onDetail={setDetailTask}
                                             onEdit={openEdit}

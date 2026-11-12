@@ -12,11 +12,13 @@ Artisan::command('inspire', function () {
 
 // 毎朝8時に翌日期限のタスクをリマインドメール送信
 Schedule::call(function () {
-    $tomorrow = now()->addDay()->startOfDay();
+    $tomorrow = now()->addDay();
 
-    Task::with('user')
-        ->whereDate('due_date', $tomorrow->toDateString())
-        ->whereNot('status', 'done')
+    Task::query()
+        ->whereBetween('due_date', [$tomorrow->copy()->startOfDay(), $tomorrow->copy()->endOfDay()])
+        ->where('status', '!=', 'done')
         ->whereHas('user', fn ($q) => $q->where('remind_enabled', true))
-        ->each(fn (Task $task) => SendTaskReminderJob::dispatch($task));
-})->dailyAt('08:00')->name('send-task-reminders');
+        ->chunkById(200, function ($tasks) {
+            $tasks->each(fn (Task $task) => SendTaskReminderJob::dispatch($task));
+        });
+})->dailyAt('08:00')->name('send-task-reminders')->withoutOverlapping()->onOneServer();

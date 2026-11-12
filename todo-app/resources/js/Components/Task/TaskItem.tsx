@@ -1,4 +1,4 @@
-import { api } from '@/lib/api';
+import { api, getErrorMessage } from '@/lib/api';
 import { Task } from '@/types';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -38,7 +38,14 @@ export default function TaskItem({
     onDuplicated,
     onStatusChange,
 }: Props) {
-    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({
         id: task.id,
     });
 
@@ -49,14 +56,22 @@ export default function TaskItem({
     };
 
     const handleDuplicate = async () => {
-        await api.tasks.duplicate(task.id);
-        onDuplicated();
+        try {
+            await api.tasks.duplicate(task.id);
+            onDuplicated();
+        } catch (e) {
+            alert(getErrorMessage(e));
+        }
     };
 
     const handleDelete = async () => {
         if (!confirm(`「${task.title}」を削除しますか？`)) return;
-        await api.tasks.delete(task.id);
-        onDeleted();
+        try {
+            await api.tasks.delete(task.id);
+            onDeleted();
+        } catch (e) {
+            alert(getErrorMessage(e));
+        }
     };
 
     const isOverdue =
@@ -69,11 +84,14 @@ export default function TaskItem({
             ref={setNodeRef}
             style={style}
             className={`flex items-center gap-3 rounded-lg border bg-white px-4 py-3 shadow-sm dark:bg-gray-800 ${
-                isOverdue ? 'border-red-300' : 'border-gray-200 dark:border-gray-700'
+                isOverdue
+                    ? 'border-red-300'
+                    : 'border-gray-200 dark:border-gray-700'
             }`}
         >
             {/* ドラッグハンドル */}
             <button
+                type="button"
                 {...attributes}
                 {...listeners}
                 className="cursor-grab text-gray-300 hover:text-gray-500 active:cursor-grabbing"
@@ -121,7 +139,9 @@ export default function TaskItem({
                 {task.due_date && (
                     <div
                         className={`mt-0.5 text-xs ${
-                            isOverdue ? 'font-medium text-red-500' : 'text-gray-400'
+                            isOverdue
+                                ? 'font-medium text-red-500'
+                                : 'text-gray-400'
                         }`}
                     >
                         期限:{' '}
@@ -139,7 +159,9 @@ export default function TaskItem({
             {/* ステータス変更 */}
             <select
                 value={task.status}
-                onChange={(e) => onStatusChange(task, e.target.value as Task['status'])}
+                onChange={(e) =>
+                    onStatusChange(task, e.target.value as Task['status'])
+                }
                 onClick={(e) => e.stopPropagation()}
                 className="shrink-0 rounded border border-gray-200 bg-gray-50 px-2 py-1 text-xs dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
             >

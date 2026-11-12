@@ -24,9 +24,14 @@ class TaskController extends Controller
 
     public function list(Request $request): JsonResponse
     {
-        $tasks = $this->taskRepository->listByUser($request->user(), $request->only([
-            'status', 'tag_id', 'priority', 'search',
-        ]));
+        $filters = $request->validate([
+            'status'   => ['nullable', 'in:todo,in_progress,done'],
+            'tag_id'   => ['nullable', 'integer'],
+            'priority' => ['nullable', 'in:high,medium,low'],
+            'search'   => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $tasks = $this->taskRepository->listByUser($request->user(), $filters);
 
         return response()->json($tasks);
     }

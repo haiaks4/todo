@@ -1,4 +1,4 @@
-import { api } from '@/lib/api';
+import { api, getErrorMessage, getValidationErrors } from '@/lib/api';
 import { Tag, Task } from '@/types';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -24,6 +24,7 @@ export default function TaskFormModal({ task, tags, onClose, onSaved }: Props) {
         register,
         handleSubmit,
         reset,
+        setError,
         formState: { errors, isSubmitting },
     } = useForm<FormValues>();
 
@@ -38,7 +39,14 @@ export default function TaskFormModal({ task, tags, onClose, onSaved }: Props) {
                 tag_id: task.tag_id?.toString() ?? '',
             });
         } else {
-            reset({ title: '', description: '', due_date: '', priority: '', status: 'todo', tag_id: '' });
+            reset({
+                title: '',
+                description: '',
+                due_date: '',
+                priority: '',
+                status: 'todo',
+                tag_id: '',
+            });
         }
     }, [task, reset]);
 
@@ -52,10 +60,33 @@ export default function TaskFormModal({ task, tags, onClose, onSaved }: Props) {
             tag_id: values.tag_id ? Number(values.tag_id) : null,
         };
 
-        if (task) {
-            await api.tasks.update(task.id, payload);
-        } else {
-            await api.tasks.create(payload);
+        try {
+            if (task) {
+                await api.tasks.update(task.id, payload);
+            } else {
+                await api.tasks.create(payload);
+            }
+        } catch (e) {
+            const validationErrors = getValidationErrors(e);
+            if (validationErrors) {
+                Object.entries(validationErrors).forEach(
+                    ([field, messages]) => {
+                        const name = (
+                            field in payload ? field : 'root.server'
+                        ) as keyof FormValues;
+                        setError(name, {
+                            type: 'server',
+                            message: messages[0],
+                        });
+                    },
+                );
+            } else {
+                setError('root.server', {
+                    type: 'server',
+                    message: getErrorMessage(e),
+                });
+            }
+            return;
         }
         onSaved();
         onClose();
@@ -75,11 +106,20 @@ export default function TaskFormModal({ task, tags, onClose, onSaved }: Props) {
                             タイトル <span className="text-red-500">*</span>
                         </label>
                         <input
-                            {...register('title', { required: 'タイトルは必須です' })}
+                            {...register('title', {
+                                required: 'タイトルは必須です。',
+                                maxLength: {
+                                    value: 255,
+                                    message:
+                                        'タイトルは255文字以内で入力してください。',
+                                },
+                            })}
                             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                         />
                         {errors.title && (
-                            <p className="mt-1 text-xs text-red-500">{errors.title.message}</p>
+                            <p className="mt-1 text-xs text-red-500">
+                                {errors.title.message}
+                            </p>
                         )}
                     </div>
 
@@ -157,6 +197,28 @@ export default function TaskFormModal({ task, tags, onClose, onSaved }: Props) {
                             </select>
                         </div>
                     </div>
+
+                    {(
+                        [
+                            'description',
+                            'due_date',
+                            'tag_id',
+                            'priority',
+                            'status',
+                        ] as const
+                    ).map(
+                        (field) =>
+                            errors[field] && (
+                                <p key={field} className="text-xs text-red-500">
+                                    {errors[field]?.message}
+                                </p>
+                            ),
+                    )}
+                    {errors.root?.server && (
+                        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
+                            {errors.root.server.message}
+                        </p>
+                    )}
 
                     <div className="flex justify-end gap-2 pt-2">
                         <button

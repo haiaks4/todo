@@ -7,7 +7,9 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpKernel\Exception\HttpException;
+use Illuminate\Session\TokenMismatchException;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -55,18 +57,25 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // その他のHTTPエラー（404,405など）およびサーバーエラー
         $exceptions->render(function (Throwable $e, Request $request) {
-            if (! $request->expectsJson()) {
+            // バリデーションエラー(422)・CSRFトークン切れ(419)等は Laravel 標準の処理に任せる
+            if (! $request->expectsJson()
+                || $e instanceof ValidationException
+                || $e instanceof TokenMismatchException) {
                 return null;
             }
 
-            $status = $e instanceof HttpException ? $e->getStatusCode() : 500;
+            $status = $e instanceof HttpExceptionInterface ? $e->getStatusCode() : 500;
 
-            // 本番環境ではエラー詳細を隠す
-            $message = ($status === 500 && app()->environment('production'))
+            // サーバーエラーはデバッグモード以外では詳細を隠す
+            $message = ($status >= 500 && ! config('app.debug'))
                 ? __('errors.server_error')
-                : $e->getMessage();
+                : ($e->getMessage() ?: __('errors.server_error'));
 
-            return response()->json(['message' => $message], $status);
+            return response()->json(
+                ['message' => $message],
+                $status,
+                $e instanceof HttpExceptionInterface ? $e->getHeaders() : []
+            );
         });
 
     })->create();
