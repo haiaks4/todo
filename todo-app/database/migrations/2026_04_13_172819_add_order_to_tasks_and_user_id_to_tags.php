@@ -8,13 +8,17 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('tasks', function (Blueprint $table) {
-            $table->integer('order')->default(0)->after('status');
-        });
+        if (! Schema::hasColumn('tasks', 'order')) {
+            Schema::table('tasks', function (Blueprint $table) {
+                $table->integer('order')->default(0)->after('status');
+            });
+        }
 
-        Schema::table('tags', function (Blueprint $table) {
-            $table->foreignId('user_id')->after('id')->constrained()->onDelete('cascade');
-        });
+        if (! Schema::hasColumn('tags', 'user_id')) {
+            Schema::table('tags', function (Blueprint $table) {
+                $table->foreignId('user_id')->after('id')->constrained()->onDelete('cascade');
+            });
+        }
     }
 
     public function down(): void
