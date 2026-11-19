@@ -9,9 +9,16 @@ Laravel 12 + Inertia.js + React (TypeScript) で作ったタスク管理アプ�
   - タスクの作成・編集・削除・複製
   - タイトル、説明、期限、優先度（高・中・低）、ステータス（未着手・進行中・完了）、タグを設定できる
   - キーワード検索と、ステータス・優先度・タグでの絞り込み
+  - 左端の丸ボタンをタップするだけで完了／未完了を切り替え
   - ドラッグ&ドロップでの並び替え（絞り込み中でも、表示されていないタスクの順序は保たれる）
-  - チェックボックスで選択して一括削除
+  - 複数のタスクを選択して、まとめて完了・削除
+  - 削除した直後なら、通知の「元に戻す」で取り消せる
   - 期限を過ぎた未完了タスクを強調表示
+- **スマホ向けの操作**
+  - 右にスワイプで完了、左にスワイプで削除
+  - 長押し（または「選択」ボタン）で選択モードに入り、画面下のバーからまとめて操作
+  - 並び替えは「並び替え」ボタンでモードを切り替えてから、つまみをドラッグ
+  - タスクの作成は右下の「＋」ボタンから。作成・編集・詳細の画面は下から出るシートで表示
 - **タグ管理**：ユーザーごとにタグを作成・名前変更・削除できる。削除するとタスクからタグが外れる
 - **ダッシュボード**：ステータス別の件数と完了率をグラフで表示
 - **リマインドメール**：プロフィール画面で有効にすると、毎朝 8:00 に「期限が明日の未完了タスク」をメールで通知する
@@ -21,7 +28,7 @@ Laravel 12 + Inertia.js + React (TypeScript) で作ったタスク管理アプ�
 | 区分 | 使用技術 |
 | --- | --- |
 | バックエンド | PHP 8.2 以上、Laravel 12、Inertia.js (Laravel)、Ziggy |
-| フロントエンド | React 19、TypeScript、Inertia.js (React)、Tailwind CSS 4、Vite 5 |
+| フロントエンド | React 19、TypeScript、Inertia.js (React)、Tailwind CSS 4、Vite 6 |
 | UI コンポーネント | [shadcn/ui](https://ui.shadcn.com/)（Radix UI ベース）、lucide-react（アイコン）、sonner（通知） |
 | フロントエンドのライブラリ | SWR（データ取得）、react-hook-form（フォーム）、dnd-kit（並び替え）、Recharts（グラフ） |
 | DB | SQLite（既定）／ MySQL 8（Laravel Sail 使用時） |
@@ -218,6 +225,8 @@ todo-app/
 | DELETE | `/api/tasks/{task}` | タスク削除 |
 | POST | `/api/tasks/{task}/duplicate` | タスク複製（一覧の末尾に「〇〇 のコピー」として追加） |
 | POST | `/api/tasks/bulk-delete` | 一括削除（`ids`: タスク ID の配列） |
+| POST | `/api/tasks/bulk-status` | ステータスの一括変更（`ids`、`status`） |
+| POST | `/api/tasks/restore` | 削除したタスクを元の位置に戻す（`ids`） |
 | POST | `/api/tasks/reorder` | 並び替え（`ids`: 新しい並び順のタスク ID の配列） |
 | GET | `/api/tags` | タグ一覧 |
 | POST | `/api/tags` | タグ作成 |

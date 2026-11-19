@@ -18,6 +18,10 @@ interface TaskRepositoryInterface
 
     public function bulkDelete(User $user, array $ids): void;
 
+    public function restore(User $user, array $ids): void;
+
+    public function bulkUpdateStatus(User $user, array $ids, string $status): void;
+
     public function reorder(User $user, array $ids): void;
 
     public function duplicate(Task $task): Task;
