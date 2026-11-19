@@ -26,6 +26,7 @@ Laravel 11 + Inertia.js + React (TypeScript) で作ったタスク管理アプ�
 | フロントエンドのライブラリ | SWR（データ取得）、react-hook-form（フォーム）、dnd-kit（並び替え）、Recharts（グラフ） |
 | DB | SQLite（既定）／ MySQL 8（Laravel Sail 使用時） |
 | テスト | PHPUnit 11 |
+| Lint・フォーマット | Biome |
 
 ## 必要な環境
 
@@ -135,15 +136,19 @@ php artisan test
 GitHub Actions（`.github/workflows/ci.yml`）で、プルリクエストと `main`・`develop` への push のたびに次を実行します。
 
 - バックエンド：`php artisan test`
-- フロントエンド：型チェック（`tsc --noEmit`）、ESLint、ビルド（`vite build`）
+- フロントエンド：型チェック（`tsc --noEmit`）、Biome による Lint・フォーマットのチェック（`biome ci`）、ビルド（`vite build`）
 
 ## コード品質
 
 ```bash
-npm run lint       # ESLint + Prettier（自動修正あり）
+npm run lint       # Biome で Lint
+npm run format     # Biome でフォーマット
+npm run check      # Lint・フォーマット・import の並び替えをまとめて実行（自動修正あり）
 npx tsc --noEmit   # TypeScript の型チェック
 npm run build      # 本番用ビルド（型チェックも含む）
 ```
+
+Lint とフォーマットには [Biome](https://biomejs.dev/) を使っています（設定は `biome.json`）。React Hooks のルールや import の並び替え、Tailwind CSS のクラスの並び替えも Biome で行います。エディタでは Biome の拡張機能を入れると、保存時に整形できます。
 
 ## UI コンポーネント（shadcn/ui）
 
@@ -153,6 +158,7 @@ UI は [shadcn/ui](https://ui.shadcn.com/) で作っています。コンポー�
 
 ```bash
 npx shadcn@latest add <コンポーネント名>   # 例: npx shadcn@latest add tabs
+npm run check                              # 追加したファイルを Biome の書式に整える
 ```
 
 - テーマの色は `resources/css/app.css` の CSS 変数で定義しています。
