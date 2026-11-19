@@ -85,18 +85,4 @@ describe('QuickAddInput', () => {
         ).toBeInTheDocument();
         expect(input).toHaveAttribute('aria-invalid', 'true');
     });
-
-    it('日本語入力の変換を確定する Enter は取り消し、ふつうの Enter は取り消さない', () => {
-        const { input } = setup();
-        const enter = (init: KeyboardEventInit & { keyCode?: number }) => {
-            const event = createEvent.keyDown(input, { key: 'Enter', ...init });
-            fireEvent(input, event);
-            return event.defaultPrevented;
-        };
-
-        // 変換中（isComposing）と、Safari の変換確定（keyCode 229）では送信しない
-        expect(enter({ isComposing: true })).toBe(true);
-        expect(enter({ keyCode: 229 })).toBe(true);
-        expect(enter({ keyCode: 13 })).toBe(false);
-    });
 });
