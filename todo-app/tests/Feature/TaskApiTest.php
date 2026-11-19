@@ -168,6 +168,24 @@ class TaskApiTest extends TestCase
             ->assertUnprocessable();
     }
 
+    public function test_list_can_be_sorted(): void
+    {
+        $noDue = Task::factory()->for($this->user)->create(['order' => 1, 'priority' => 'high', 'due_date' => null, 'created_at' => now()->subDays(3)]);
+        $later = Task::factory()->for($this->user)->create(['order' => 2, 'priority' => null, 'due_date' => now()->addDays(5), 'created_at' => now()->subDays(1)]);
+        $soon = Task::factory()->for($this->user)->create(['order' => 3, 'priority' => 'low', 'due_date' => now()->addDay(), 'created_at' => now()->subDays(2)]);
+        $mid = Task::factory()->for($this->user)->create(['order' => 4, 'priority' => 'high', 'due_date' => now()->addDays(2), 'created_at' => now()]);
+
+        $ids = fn (string $sort) => $this->actingAs($this->user)->getJson("/api/tasks?sort={$sort}")->assertOk()->json('*.id');
+
+        $this->assertSame([$noDue->id, $later->id, $soon->id, $mid->id], $ids('manual'));
+        $this->assertSame([$soon->id, $mid->id, $later->id, $noDue->id], $ids('due_date'));
+        // 優先度が同じ（high）なら期限が近い順、期限なしは後ろ
+        $this->assertSame([$mid->id, $noDue->id, $soon->id, $later->id], $ids('priority'));
+        $this->assertSame([$mid->id, $later->id, $soon->id, $noDue->id], $ids('created_at'));
+
+        $this->actingAs($this->user)->getJson('/api/tasks?sort=title')->assertUnprocessable();
+    }
+
     public function test_partial_reorder_keeps_relative_position_of_other_tasks(): void
     {
         $a = Task::factory()->for($this->user)->create(['order' => 1, 'status' => 'todo']);

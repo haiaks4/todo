@@ -15,6 +15,7 @@ import {
 } from '@dnd-kit/sortable';
 import { Head } from '@inertiajs/react';
 import {
+    ArrowDownWideNarrow,
     ArrowUpDown,
     Check,
     CheckCheck,
@@ -47,9 +48,16 @@ import {
     SelectValue,
 } from '@/Components/ui/select';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { usePersistentState } from '@/hooks/usePersistentState';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { api, fetcher, getErrorMessage } from '@/lib/api';
-import { PRIORITY_OPTIONS, STATUS_OPTIONS } from '@/lib/task';
+import {
+    isSortKey,
+    PRIORITY_OPTIONS,
+    SORT_OPTIONS,
+    type SortKey,
+    STATUS_OPTIONS,
+} from '@/lib/task';
 import { cn } from '@/lib/utils';
 import type { Status, Tag, Task } from '@/types';
 
@@ -63,6 +71,13 @@ export default function TaskIndex() {
     const [filterStatus, setFilterStatus] = useState(ALL);
     const [filterTagId, setFilterTagId] = useState(ALL);
     const [filterPriority, setFilterPriority] = useState(ALL);
+    // 並べ替え（端末ごとに覚えておく）
+    const [sort, setSort] = usePersistentState<SortKey>(
+        'tasks.sort',
+        'manual',
+        isSortKey,
+    );
+    const manualSort = sort === 'manual';
 
     // ダイアログ状態
     const [tagManagerOpen, setTagManagerOpen] = useState(false);
@@ -105,6 +120,7 @@ export default function TaskIndex() {
     if (filterStatus !== ALL) taskParams.set('status', filterStatus);
     if (filterTagId !== ALL) taskParams.set('tag_id', filterTagId);
     if (filterPriority !== ALL) taskParams.set('priority', filterPriority);
+    if (!manualSort) taskParams.set('sort', sort);
 
     const {
         data: tasks,
@@ -355,23 +371,27 @@ export default function TaskIndex() {
                             </Button>
                             {localTasks.length > 0 && (
                                 <div className="ml-auto flex gap-2 sm:hidden">
-                                    <Button
-                                        variant={
-                                            reordering ? 'default' : 'outline'
-                                        }
-                                        onClick={() => {
-                                            exitSelection();
-                                            setReordering((v) => !v);
-                                        }}
-                                        aria-pressed={reordering}
-                                    >
-                                        {reordering ? (
-                                            <Check />
-                                        ) : (
-                                            <ArrowUpDown />
-                                        )}
-                                        {reordering ? '完了' : '並び替え'}
-                                    </Button>
+                                    {manualSort && (
+                                        <Button
+                                            variant={
+                                                reordering
+                                                    ? 'default'
+                                                    : 'outline'
+                                            }
+                                            onClick={() => {
+                                                exitSelection();
+                                                setReordering((v) => !v);
+                                            }}
+                                            aria-pressed={reordering}
+                                        >
+                                            {reordering ? (
+                                                <Check />
+                                            ) : (
+                                                <ArrowUpDown />
+                                            )}
+                                            {reordering ? '完了' : '並び替え'}
+                                        </Button>
+                                    )}
                                     {!reordering && (
                                         <Button
                                             variant="outline"
@@ -479,6 +499,32 @@ export default function TaskIndex() {
                                 </SelectContent>
                             </Select>
 
+                            <Select
+                                value={sort}
+                                onValueChange={(value) => {
+                                    setSort(value as SortKey);
+                                    setReordering(false);
+                                }}
+                            >
+                                <SelectTrigger
+                                    className="w-auto min-w-36 bg-background"
+                                    aria-label="並べ替え"
+                                >
+                                    <ArrowDownWideNarrow />
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {SORT_OPTIONS.map((opt) => (
+                                        <SelectItem
+                                            key={opt.value}
+                                            value={opt.value}
+                                        >
+                                            {opt.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
                             {isFiltered && (
                                 <Button variant="ghost" onClick={clearFilters}>
                                     条件をクリア
@@ -567,6 +613,7 @@ export default function TaskIndex() {
                                                 )}
                                                 selecting={selecting}
                                                 reordering={reordering}
+                                                draggable={manualSort}
                                                 onToggleSelect={
                                                     handleToggleSelect
                                                 }

@@ -12,6 +12,18 @@ export const PRIORITY_OPTIONS: { value: Priority; label: string }[] = [
     { value: 'low', label: '低' },
 ];
 
+export type SortKey = 'manual' | 'due_date' | 'priority' | 'created_at';
+
+export const SORT_OPTIONS: { value: SortKey; label: string }[] = [
+    { value: 'manual', label: '手動の並び順' },
+    { value: 'due_date', label: '期限が近い順' },
+    { value: 'priority', label: '優先度が高い順' },
+    { value: 'created_at', label: '作成日が新しい順' },
+];
+
+export const isSortKey = (value: unknown): value is SortKey =>
+    SORT_OPTIONS.some((opt) => opt.value === value);
+
 export const STATUS_LABELS: Record<Status, string> = {
     todo: '未着手',
     in_progress: '進行中',
