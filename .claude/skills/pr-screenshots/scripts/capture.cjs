@@ -27,6 +27,8 @@ const DEVICES = {
     for (const scene of scenes) {
         const context = await browser.newContext(DEVICES[scene.device ?? 'desktop']);
         const page = await context.newPage();
+        // 変更前の画面に無い操作で長く待たないよう、待ち時間を短くする
+        page.setDefaultTimeout(5000);
 
         // タッチ操作（スワイプ・長押し）は CDP で再現する
         const cdp = await context.newCDPSession(page);
@@ -56,7 +58,7 @@ const DEVICES = {
             await touch('touchEnd');
         };
 
-        await page.goto(`${baseUrl}/login`);
+        await page.goto(`${baseUrl}/login`, { timeout: 30000 });
         await page.fill('#email', 'demo@example.com');
         await page.fill('#password', 'password');
         await page.click('button[type=submit]');

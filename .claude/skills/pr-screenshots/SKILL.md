@@ -57,40 +57,41 @@ bash ../.claude/skills/pr-screenshots/scripts/shoot.sh origin/develop <scenes.cj
 
 ### 3. PR に載せる
 
-`gh` で画像を添付できるか確認する。
+出力ディレクトリに `screenshots.md`（「スクリーンショット」欄の中身）を書く。画像はローカルの相対パスで参照する。
+
+```markdown
+## スクリーンショット
+
+<!-- 何と比べたか（ベースが develop でない場合） -->
+
+### タスク一覧（スマホ）
+
+| 変更前 | 変更後 |
+| --- | --- |
+| ![変更前](./before-list-mobile.png) | ![変更後](./after-list-mobile.png) |
+```
+
+- 変更前に存在しない画面は、変更前の欄を「（なし）」にする。
+- 各シーンの下に、何を見てほしいかを 1 行で書いてよい。
+
+次に、`gh` が使えるかを確認する。
 
 ```bash
 gh pr edit --help | grep -q -- '--attach' && gh auth status
 ```
 
-**添付できる場合**（`--attach` に対応した GitHub CLI（v2.105.0 で確認）でログイン済み。リポジトリへの push 権限が必要）:
+**使える場合**（`--attach` に対応した GitHub CLI（v2.105.0 で確認）でログイン済み。リポジトリへの push 権限が必要）:
 
-1. 出力ディレクトリで、現在の PR 本文を取得して `body.md` に保存する。すでに「## スクリーンショット」欄があれば、その見出しから次の `## ` 見出しの手前（または末尾）までを削除する。
-   ```bash
-   cd <出力ディレクトリ>
-   gh pr view <PR番号> --json body -q .body > body.md
-   ```
-2. 「## 動作確認」の後ろ（無ければ末尾の署名の前）に、次の形式の欄を入れる。画像はローカルの相対パスで書く。
-   ```markdown
-   ## スクリーンショット
+```bash
+bash .claude/skills/pr-screenshots/scripts/attach.sh <PR番号> <出力ディレクトリ>
+```
 
-   ### タスク一覧（スマホ）
+- 現在の PR 本文を取得し、「## スクリーンショット」欄を「## 関連 issue」の前に入れて（既存の欄は置き換える）、`gh pr edit --body-file ... --attach ...` で更新する。`gh` が画像をアップロードし、本文のローカルパスをアップロード先の URL に書き換える。
+- 実行後、`gh pr view <PR番号> --json body -q .body` で画像の URL に置き換わっていることを確認する。
 
-   | 変更前 | 変更後 |
-   | --- | --- |
-   | ![変更前](./before-list-mobile.png) | ![変更後](./after-list-mobile.png) |
-   ```
-3. 本文で参照したすべての画像を `--attach` に渡して更新する。`gh` が画像をアップロードし、本文のローカルパスをアップロード先の URL に書き換える。
-   ```bash
-   gh pr edit <PR番号> --body-file body.md --attach ./before-list-mobile.png --attach ./after-list-mobile.png
-   ```
-4. `gh pr view <PR番号> --json body -q .body` で、画像の URL に置き換わっていることを確認する。
+**使えない場合**（`gh` が古い・未ログイン・クラウド環境で `gh` の利用が許されていない など）:
 
-PR を新しく作る場合は、同じ本文を `gh pr create --body-file body.md --attach ...` で渡してもよい。
-
-**添付できない場合**（`gh` が古い・未ログイン・クラウド環境などで `gh` を使えない）:
-
-- 画像をユーザーに送り（ファイル送信の手段があればそれを使う）、手元で実行できる 3. のコマンド一式（`body.md` を含む）を示して、添付を依頼する。
+- 出力ディレクトリ（画像・`screenshots.md`）と `scripts/attach.sh` をまとめてユーザーに送り（ファイル送信の手段があればそれを使う）、手元で `bash attach.sh <PR番号> <ディレクトリ>` を実行してもらう。
 - 画像をリポジトリにコミットして代わりにしない（`develop` に画像がたまるため）。
 
 ## 注意
