@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: todo-app
+
+jobs:
+  backend:
+    name: Backend (PHP)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_sqlite, sqlite3
+          coverage: none
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache/files
+          key: composer-${{ runner.os }}-${{ hashFiles('todo-app/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Code style (Pint)
+        run: vendor/bin/pint --test
+
+      - name: Tests (PHPUnit)
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ':memory:'
+        run: php artisan test
+
+  frontend:
+    name: Frontend (TypeScript)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: todo-app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint (ESLint)
+        run: npx eslint resources/js --ext .js,.jsx,.ts,.tsx --ignore-path .gitignore --max-warnings 0
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npx vite build
