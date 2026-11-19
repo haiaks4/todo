@@ -1,3 +1,23 @@
+import {
+    closestCenter,
+    DndContext,
+    type DragEndEvent,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { Head } from '@inertiajs/react';
+import { Plus, RotateCw, Search, Tags, Trash2 } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
+import useSWR from 'swr';
 import ConfirmDialog from '@/Components/ConfirmDialog';
 import TagManagerDialog from '@/Components/Tag/TagManagerDialog';
 import TaskDetailDialog from '@/Components/Task/TaskDetailDialog';
@@ -16,27 +36,7 @@ import {
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { api, fetcher, getErrorMessage } from '@/lib/api';
 import { PRIORITY_OPTIONS, STATUS_OPTIONS } from '@/lib/task';
-import { Status, Tag, Task } from '@/types';
-import {
-    DndContext,
-    DragEndEvent,
-    KeyboardSensor,
-    PointerSensor,
-    closestCenter,
-    useSensor,
-    useSensors,
-} from '@dnd-kit/core';
-import {
-    SortableContext,
-    arrayMove,
-    sortableKeyboardCoordinates,
-    verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { Head } from '@inertiajs/react';
-import { Plus, RotateCw, Search, Tags, Trash2 } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner';
-import useSWR from 'swr';
+import type { Status, Tag, Task } from '@/types';
 
 /** Select で「すべて」を表す値（Radix の Select は空文字を値にできない） */
 const ALL = 'all';

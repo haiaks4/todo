@@ -1,9 +1,8 @@
 import { cn } from 'cn';
-import { Dialog as DialogPrimitive } from 'radix-ui';
-import * as React from 'react';
-
-import { Button } from '@/Components/ui/button';
 import { XIcon } from 'lucide-react';
+import { Dialog as DialogPrimitive } from 'radix-ui';
+import type * as React from 'react';
+import { Button } from '@/Components/ui/button';
 
 function Dialog({
     ...props

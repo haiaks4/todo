@@ -1,3 +1,6 @@
+import { Head, Link } from '@inertiajs/react';
+import { Plus } from 'lucide-react';
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { Button } from '@/Components/ui/button';
 import {
     Card,
@@ -7,10 +10,7 @@ import {
     CardTitle,
 } from '@/Components/ui/card';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { PageProps } from '@/types';
-import { Head, Link } from '@inertiajs/react';
-import { Plus } from 'lucide-react';
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
+import type { PageProps } from '@/types';
 
 interface Stats {
     total: number;
@@ -114,15 +114,13 @@ export default function Dashboard({ stats }: PageProps<{ stats: Stats }>) {
                                                 endAngle={-270}
                                                 isAnimationActive={false}
                                             >
-                                                {displayData.map(
-                                                    (entry, index) => (
-                                                        <Cell
-                                                            key={index}
-                                                            fill={entry.color}
-                                                            strokeWidth={0}
-                                                        />
-                                                    ),
-                                                )}
+                                                {displayData.map((entry) => (
+                                                    <Cell
+                                                        key={entry.name}
+                                                        fill={entry.color}
+                                                        strokeWidth={0}
+                                                    />
+                                                ))}
                                             </Pie>
                                             {chartData.length > 0 && (
                                                 <Tooltip

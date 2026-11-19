@@ -1,3 +1,6 @@
+import { useEffect } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 import InputError from '@/Components/InputError';
 import { Alert, AlertDescription } from '@/Components/ui/alert';
 import { Button } from '@/Components/ui/button';
@@ -21,10 +24,7 @@ import {
 import { Textarea } from '@/Components/ui/textarea';
 import { api, getErrorMessage, getValidationErrors } from '@/lib/api';
 import { PRIORITY_OPTIONS, STATUS_OPTIONS } from '@/lib/task';
-import { Tag, Task } from '@/types';
-import { useEffect } from 'react';
-import { Controller, useForm } from 'react-hook-form';
-import { toast } from 'sonner';
+import type { Tag, Task } from '@/types';
 
 interface Props {
     open: boolean;

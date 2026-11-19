@@ -1,4 +1,4 @@
-import { Priority, Status, Task } from '@/types';
+import type { Priority, Status, Task } from '@/types';
 
 export const STATUS_OPTIONS: { value: Status; label: string }[] = [
     { value: 'todo', label: '未着手' },

@@ -1,3 +1,6 @@
+import { router } from '@inertiajs/react';
+import { useState } from 'react';
+import { toast } from 'sonner';
 import {
     Card,
     CardContent,
@@ -7,9 +10,6 @@ import {
 } from '@/Components/ui/card';
 import { Label } from '@/Components/ui/label';
 import { Switch } from '@/Components/ui/switch';
-import { router } from '@inertiajs/react';
-import { useState } from 'react';
-import { toast } from 'sonner';
 
 export default function UpdateRemindForm({
     remindEnabled,

@@ -1,3 +1,6 @@
+import { useForm } from '@inertiajs/react';
+import { type FormEventHandler, useRef } from 'react';
+import { toast } from 'sonner';
 import InputError from '@/Components/InputError';
 import { Button } from '@/Components/ui/button';
 import {
@@ -10,9 +13,6 @@ import {
 } from '@/Components/ui/card';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
-import { useForm } from '@inertiajs/react';
-import { FormEventHandler, useRef } from 'react';
-import { toast } from 'sonner';
 
 export default function UpdatePasswordForm() {
     const passwordInput = useRef<HTMLInputElement>(null);

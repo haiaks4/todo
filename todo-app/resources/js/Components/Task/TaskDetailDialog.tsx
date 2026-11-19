@@ -1,3 +1,4 @@
+import { CalendarClock } from 'lucide-react';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
 import {
@@ -9,16 +10,15 @@ import {
     DialogTitle,
 } from '@/Components/ui/dialog';
 import {
+    formatDateTime,
+    isOverdue,
     PRIORITY_BADGE_CLASSES,
     PRIORITY_LABELS,
     STATUS_BADGE_CLASSES,
     STATUS_LABELS,
-    formatDateTime,
-    isOverdue,
 } from '@/lib/task';
 import { cn } from '@/lib/utils';
-import { Task } from '@/types';
-import { CalendarClock } from 'lucide-react';
+import type { Task } from '@/types';
 
 interface Props {
     task: Task | null;

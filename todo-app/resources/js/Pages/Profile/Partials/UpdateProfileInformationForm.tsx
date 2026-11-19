@@ -1,3 +1,6 @@
+import { Link, useForm, usePage } from '@inertiajs/react';
+import type { FormEventHandler } from 'react';
+import { toast } from 'sonner';
 import InputError from '@/Components/InputError';
 import { Alert, AlertDescription } from '@/Components/ui/alert';
 import { Button } from '@/Components/ui/button';
@@ -11,9 +14,6 @@ import {
 } from '@/Components/ui/card';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
-import { Link, useForm, usePage } from '@inertiajs/react';
-import { FormEventHandler } from 'react';
-import { toast } from 'sonner';
 
 export default function UpdateProfileInformationForm({
     mustVerifyEmail,
