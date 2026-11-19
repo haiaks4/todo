@@ -13,14 +13,16 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', function () {
-    $user = auth()->user();
-    $tasks = $user->tasks();
+    $counts = auth()->user()->tasks()
+        ->selectRaw('status, COUNT(*) as aggregate')
+        ->groupBy('status')
+        ->pluck('aggregate', 'status');
 
     $stats = [
-        'total'       => $tasks->count(),
-        'todo'        => (clone $tasks)->where('status', 'todo')->count(),
-        'in_progress' => (clone $tasks)->where('status', 'in_progress')->count(),
-        'done'        => (clone $tasks)->where('status', 'done')->count(),
+        'total'       => (int) $counts->sum(),
+        'todo'        => (int) ($counts['todo'] ?? 0),
+        'in_progress' => (int) ($counts['in_progress'] ?? 0),
+        'done'        => (int) ($counts['done'] ?? 0),
     ];
 
     return Inertia::render('Dashboard', ['stats' => $stats]);
@@ -37,14 +39,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/task', [TaskController::class, 'index'])->name('task.index');
 
     // Task API
+    // 静的なパスは {task} より先に定義する
+    Route::post('/api/tasks/bulk-delete', [TaskController::class, 'bulkDestroy'])->name('task.bulk-destroy');
+    Route::post('/api/tasks/reorder', [TaskController::class, 'reorder'])->name('task.reorder');
     Route::get('/api/tasks', [TaskController::class, 'list'])->name('task.list');
     Route::post('/api/tasks', [TaskController::class, 'store'])->name('task.store');
     Route::get('/api/tasks/{task}', [TaskController::class, 'show'])->name('task.show');
     Route::patch('/api/tasks/{task}', [TaskController::class, 'update'])->name('task.update');
     Route::delete('/api/tasks/{task}', [TaskController::class, 'destroy'])->name('task.destroy');
     Route::post('/api/tasks/{task}/duplicate', [TaskController::class, 'duplicate'])->name('task.duplicate');
-    Route::post('/api/tasks/bulk-delete', [TaskController::class, 'bulkDestroy'])->name('task.bulk-destroy');
-    Route::post('/api/tasks/reorder', [TaskController::class, 'reorder'])->name('task.reorder');
 
     // Tag API
     Route::get('/api/tags', [TagController::class, 'index'])->name('tag.index');

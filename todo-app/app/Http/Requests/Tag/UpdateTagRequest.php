@@ -18,13 +18,10 @@ class UpdateTagRequest extends FormRequest
         ];
     }
 
-    public function messages(): array
-    {
-        return __('validation') + [];
-    }
-
     public function attributes(): array
     {
-        return __('validation.attributes');
+        return [
+            'name' => 'タグ名',
+        ];
     }
 }

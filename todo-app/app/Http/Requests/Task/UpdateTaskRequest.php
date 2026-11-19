@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Task;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateTaskRequest extends FormRequest
 {
@@ -15,21 +16,11 @@ class UpdateTaskRequest extends FormRequest
     {
         return [
             'title'       => ['sometimes', 'required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
+            'description' => ['nullable', 'string', 'max:10000'],
             'due_date'    => ['nullable', 'date'],
             'priority'    => ['nullable', 'in:high,medium,low'],
-            'status'      => ['nullable', 'in:todo,in_progress,done'],
-            'tag_id'      => ['nullable', 'integer', 'exists:tags,id'],
+            'status'      => ['sometimes', 'required', 'in:todo,in_progress,done'],
+            'tag_id'      => ['nullable', 'integer', Rule::exists('tags', 'id')->where('user_id', $this->user()->id)->whereNull('deleted_at')],
         ];
-    }
-
-    public function messages(): array
-    {
-        return __('validation') + [];
-    }
-
-    public function attributes(): array
-    {
-        return __('validation.attributes');
     }
 }

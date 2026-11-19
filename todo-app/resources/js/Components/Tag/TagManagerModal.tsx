@@ -1,4 +1,4 @@
-import { api } from '@/lib/api';
+import { api, getErrorMessage, getValidationErrors } from '@/lib/api';
 import { Tag } from '@/types';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -11,38 +11,65 @@ interface Props {
 
 export default function TagManagerModal({ tags, onClose, onChanged }: Props) {
     const [editingId, setEditingId] = useState<number | null>(null);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+    const toMessage = (e: unknown) =>
+        getValidationErrors(e)?.name?.[0] ?? getErrorMessage(e);
 
     const createForm = useForm<{ name: string }>();
     const editForm = useForm<{ name: string }>();
 
     const handleCreate = async (values: { name: string }) => {
-        await api.tags.create(values);
-        createForm.reset();
-        onChanged();
+        setErrorMessage(null);
+        try {
+            await api.tags.create(values);
+            createForm.reset();
+            onChanged();
+        } catch (e) {
+            setErrorMessage(toMessage(e));
+        }
     };
 
     const handleEdit = async (id: number, values: { name: string }) => {
-        await api.tags.update(id, values);
-        setEditingId(null);
-        onChanged();
+        setErrorMessage(null);
+        try {
+            await api.tags.update(id, values);
+            setEditingId(null);
+            onChanged();
+        } catch (e) {
+            setErrorMessage(toMessage(e));
+        }
     };
 
     const handleDelete = async (tag: Tag) => {
-        if (!confirm(`タグ「${tag.name}」を削除しますか？\n関連タスクのタグは外れます。`)) return;
-        await api.tags.delete(tag.id);
-        onChanged();
+        if (
+            !confirm(
+                `タグ「${tag.name}」を削除しますか？\n関連タスクのタグは外れます。`,
+            )
+        )
+            return;
+        setErrorMessage(null);
+        try {
+            await api.tags.delete(tag.id);
+            onChanged();
+        } catch (e) {
+            setErrorMessage(toMessage(e));
+        }
     };
 
     const startEdit = (tag: Tag) => {
+        setErrorMessage(null);
         setEditingId(tag.id);
-        editForm.setValue('name', tag.name);
+        editForm.reset({ name: tag.name });
     };
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
             <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
                 <div className="mb-4 flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">タグ管理</h2>
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        タグ管理
+                    </h2>
                     <button
                         onClick={onClose}
                         className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
@@ -57,7 +84,11 @@ export default function TagManagerModal({ tags, onClose, onChanged }: Props) {
                     className="mb-4 flex gap-2"
                 >
                     <input
-                        {...createForm.register('name', { required: true })}
+                        {...createForm.register('name', {
+                            required: true,
+                            maxLength: 50,
+                        })}
+                        maxLength={50}
                         placeholder="新しいタグ名"
                         className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                     />
@@ -70,17 +101,29 @@ export default function TagManagerModal({ tags, onClose, onChanged }: Props) {
                     </button>
                 </form>
 
+                {errorMessage && (
+                    <p className="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
+                        {errorMessage}
+                    </p>
+                )}
+
                 {/* タグ一覧 */}
                 <ul className="space-y-2">
                     {tags.map((tag) => (
                         <li key={tag.id} className="flex items-center gap-2">
                             {editingId === tag.id ? (
                                 <form
-                                    onSubmit={editForm.handleSubmit((v) => handleEdit(tag.id, v))}
+                                    onSubmit={editForm.handleSubmit((v) =>
+                                        handleEdit(tag.id, v),
+                                    )}
                                     className="flex flex-1 gap-2"
                                 >
                                     <input
-                                        {...editForm.register('name', { required: true })}
+                                        {...editForm.register('name', {
+                                            required: true,
+                                            maxLength: 50,
+                                        })}
+                                        maxLength={50}
                                         className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                                     />
                                     <button
@@ -121,7 +164,9 @@ export default function TagManagerModal({ tags, onClose, onChanged }: Props) {
                         </li>
                     ))}
                     {tags.length === 0 && (
-                        <li className="text-center text-sm text-gray-400">タグがありません</li>
+                        <li className="text-center text-sm text-gray-400">
+                            タグがありません
+                        </li>
                     )}
                 </ul>
 

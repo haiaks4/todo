@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Task;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class ReorderTaskRequest extends FormRequest
 {
@@ -14,18 +15,8 @@ class ReorderTaskRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'ids'   => ['required', 'array'],
-            'ids.*' => ['integer', 'exists:tasks,id'],
+            'ids'   => ['required', 'array', 'max:1000'],
+            'ids.*' => ['integer', 'distinct', Rule::exists('tasks', 'id')->where('user_id', $this->user()->id)->whereNull('deleted_at')],
         ];
-    }
-
-    public function messages(): array
-    {
-        return __('validation') + [];
-    }
-
-    public function attributes(): array
-    {
-        return __('validation.attributes');
     }
 }
