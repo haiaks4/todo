@@ -8,11 +8,13 @@
         "format": "biome format --write",
         "check": "biome check --write",
         "test": "vitest run",
-        "test:watch": "vitest"
+        "test:watch": "vitest",
+        "test:e2e": "vite build && playwright test"
     },
     "devDependencies": {
         "@biomejs/biome": "2.6.8",
         "@inertiajs/react": "^1.0.0",
+        "@playwright/test": "^1.65.1",
         "@tailwindcss/vite": "^4.3.5",
         "@testing-library/jest-dom": "^8.0.0",
         "@testing-library/react": "^16.3.3",
