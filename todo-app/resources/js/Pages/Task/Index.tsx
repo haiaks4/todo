@@ -150,6 +150,10 @@ export default function TaskIndex() {
     );
 
     const handleStatusChange = async (task: Task, status: Status) => {
+        // 先に画面へ反映し、通信を待たずに操作できるようにする
+        setLocalTasks((prev) =>
+            prev.map((t) => (t.id === task.id ? { ...t, status } : t)),
+        );
         try {
             await api.tasks.update(task.id, { status });
         } catch (e) {
