@@ -97,4 +97,35 @@ class ProfileTest extends TestCase
 
         $this->assertNotNull($user->fresh());
     }
+
+    public function test_email_can_be_changed_to_one_used_by_deleted_user(): void
+    {
+        User::factory()->create(['email' => 'old@example.com'])->delete();
+        $user = User::factory()->create();
+
+        $this
+            ->actingAs($user)
+            ->patch('/profile', [
+                'name' => 'Test User',
+                'email' => 'old@example.com',
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/profile');
+
+        $this->assertSame('old@example.com', $user->refresh()->email);
+    }
+
+    public function test_email_cannot_be_changed_to_one_used_by_active_user(): void
+    {
+        User::factory()->create(['email' => 'taken@example.com']);
+        $user = User::factory()->create();
+
+        $this
+            ->actingAs($user)
+            ->patch('/profile', [
+                'name' => 'Test User',
+                'email' => 'taken@example.com',
+            ])
+            ->assertSessionHasErrors('email');
+    }
 }
