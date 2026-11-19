@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: todo-app
+
+jobs:
+  backend:
+    name: バックエンド（PHPUnit）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_sqlite, sqlite3
+          coverage: none
+
+      - name: Composer のキャッシュ
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache/files
+          key: composer-${{ hashFiles('todo-app/composer.lock') }}
+          restore-keys: composer-
+
+      - name: 依存パッケージのインストール
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: 環境設定
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: テスト
+        run: php artisan test
+
+  frontend:
+    name: フロントエンド（型チェック・Lint・ビルド）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: todo-app/package-lock.json
+
+      - name: 依存パッケージのインストール
+        run: npm ci
+
+      - name: 型チェック
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npx eslint resources/js --ext .js,.jsx,.ts,.tsx
+
+      - name: ビルド
+        run: npx vite build

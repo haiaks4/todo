@@ -137,6 +137,13 @@ npx tsc --noEmit   # TypeScript の型チェック
 npm run build      # 本番用ビルド（型チェックも含む）
 ```
 
+## CI
+
+GitHub Actions（`.github/workflows/ci.yml`）で、プルリクエストと `main`・`develop` への push のたびに次を実行します。
+
+- バックエンド：`php artisan test`
+- フロントエンド：型チェック（`tsc --noEmit`）、ESLint、ビルド（`vite build`）
+
 ## ディレクトリ構成（主要部分）
 
 ```text
