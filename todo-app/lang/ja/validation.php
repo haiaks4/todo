@@ -28,6 +28,13 @@ return [
     'email'       => ':attributeは有効なメールアドレス形式で入力してください。',
     'unique'      => ':attributeはすでに使用されています。',
     'lowercase'   => ':attributeは小文字で入力してください。',
+    'password'    => [
+        'letters'       => ':attributeには英字を1文字以上含めてください。',
+        'mixed'         => ':attributeには大文字と小文字をそれぞれ1文字以上含めてください。',
+        'numbers'       => ':attributeには数字を1文字以上含めてください。',
+        'symbols'       => ':attributeには記号を1文字以上含めてください。',
+        'uncompromised' => 'この:attributeは過去に流出したことがあります。別の:attributeを指定してください。',
+    ],
 
     'custom' => [
         'ids'   => [
@@ -53,6 +60,8 @@ return [
         'ids'            => 'タスク',
         'remind_enabled' => 'リマインド設定',
         'email'          => 'メールアドレス',
-        'password'       => 'パスワード',
+        'password'              => 'パスワード',
+        'password_confirmation' => 'パスワード（確認）',
+        'current_password'      => '現在のパスワード',
     ],
 ];
