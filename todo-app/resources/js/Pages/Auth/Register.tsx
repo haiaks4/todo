@@ -1,6 +1,7 @@
 import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import TextInput from '@/Components/TextInput';
+import { Button } from '@/Components/ui/button';
+import { Input } from '@/Components/ui/input';
+import { Label } from '@/Components/ui/label';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
@@ -25,86 +26,91 @@ export default function Register() {
             <Head title="新規登録" />
 
             <div className="mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">新規登録</h2>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                <h2 className="text-2xl font-bold">新規登録</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
                     アカウントを作成してください
                 </p>
             </div>
 
             <form onSubmit={submit} className="space-y-5">
-                <div>
-                    <InputLabel htmlFor="name" value="ユーザー名" />
-                    <TextInput
+                <div className="space-y-2">
+                    <Label htmlFor="name">ユーザー名</Label>
+                    <Input
                         id="name"
                         name="name"
                         value={data.name}
-                        className="mt-1 block w-full"
                         autoComplete="name"
-                        isFocused={true}
-                        onChange={(e) => setData('name', e.target.value)}
+                        autoFocus
                         required
+                        aria-invalid={!!errors.name}
+                        onChange={(e) => setData('name', e.target.value)}
                     />
-                    <InputError message={errors.name} className="mt-2" />
+                    <InputError message={errors.name} />
                 </div>
 
-                <div>
-                    <InputLabel htmlFor="email" value="メールアドレス" />
-                    <TextInput
+                <div className="space-y-2">
+                    <Label htmlFor="email">メールアドレス</Label>
+                    <Input
                         id="email"
                         type="email"
                         name="email"
                         value={data.email}
-                        className="mt-1 block w-full"
                         autoComplete="username"
-                        onChange={(e) => setData('email', e.target.value)}
                         required
+                        aria-invalid={!!errors.email}
+                        onChange={(e) => setData('email', e.target.value)}
                     />
-                    <InputError message={errors.email} className="mt-2" />
+                    <InputError message={errors.email} />
                 </div>
 
-                <div>
-                    <InputLabel htmlFor="password" value="パスワード" />
-                    <TextInput
+                <div className="space-y-2">
+                    <Label htmlFor="password">パスワード</Label>
+                    <Input
                         id="password"
                         type="password"
                         name="password"
                         value={data.password}
-                        className="mt-1 block w-full"
                         autoComplete="new-password"
-                        onChange={(e) => setData('password', e.target.value)}
                         required
+                        aria-invalid={!!errors.password}
+                        onChange={(e) => setData('password', e.target.value)}
                     />
-                    <InputError message={errors.password} className="mt-2" />
+                    <InputError message={errors.password} />
                 </div>
 
-                <div>
-                    <InputLabel htmlFor="password_confirmation" value="パスワード（確認）" />
-                    <TextInput
+                <div className="space-y-2">
+                    <Label htmlFor="password_confirmation">
+                        パスワード（確認）
+                    </Label>
+                    <Input
                         id="password_confirmation"
                         type="password"
                         name="password_confirmation"
                         value={data.password_confirmation}
-                        className="mt-1 block w-full"
                         autoComplete="new-password"
-                        onChange={(e) => setData('password_confirmation', e.target.value)}
                         required
+                        aria-invalid={!!errors.password_confirmation}
+                        onChange={(e) =>
+                            setData('password_confirmation', e.target.value)
+                        }
                     />
-                    <InputError message={errors.password_confirmation} className="mt-2" />
+                    <InputError message={errors.password_confirmation} />
                 </div>
 
-                <button
+                <Button
                     type="submit"
+                    size="lg"
+                    className="w-full"
                     disabled={processing}
-                    className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
                 >
-                    {processing ? '登録中...' : 'アカウント作成'}
-                </button>
+                    {processing ? '登録中...' : 'アカウントを作成'}
+                </Button>
 
-                <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-center text-sm text-muted-foreground">
                     すでにアカウントをお持ちの方は{' '}
                     <Link
                         href={route('login')}
-                        className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
+                        className="font-medium text-foreground underline-offset-4 hover:underline"
                     >
                         ログイン
                     </Link>

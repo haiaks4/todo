@@ -21,7 +21,8 @@ Laravel 11 + Inertia.js + React (TypeScript) で作ったタスク管理アプ�
 | 区分 | 使用技術 |
 | --- | --- |
 | バックエンド | PHP 8.2 以上、Laravel 11、Inertia.js (Laravel)、Ziggy |
-| フロントエンド | React 18、TypeScript、Inertia.js (React)、Tailwind CSS 3、Vite 5 |
+| フロントエンド | React 19、TypeScript、Inertia.js (React)、Tailwind CSS 4、Vite 5 |
+| UI コンポーネント | [shadcn/ui](https://ui.shadcn.com/)（Radix UI ベース）、lucide-react（アイコン）、sonner（通知） |
 | フロントエンドのライブラリ | SWR（データ取得）、react-hook-form（フォーム）、dnd-kit（並び替え）、Recharts（グラフ） |
 | DB | SQLite（既定）／ MySQL 8（Laravel Sail 使用時） |
 | テスト | PHPUnit 11 |
@@ -30,7 +31,7 @@ Laravel 11 + Inertia.js + React (TypeScript) で作ったタスク管理アプ�
 
 - PHP 8.2 以上（拡張モジュール `pdo_sqlite`・`mbstring` など Laravel の要件を満たすもの）
 - Composer 2
-- Node.js 18 以上と npm
+- Node.js 20 以上と npm（shadcn/ui の CLI が Node.js 20.18 以上を必要とするため）
 
 ## セットアップ（ローカル・SQLite）
 
@@ -144,6 +145,20 @@ npx tsc --noEmit   # TypeScript の型チェック
 npm run build      # 本番用ビルド（型チェックも含む）
 ```
 
+## UI コンポーネント（shadcn/ui）
+
+UI は [shadcn/ui](https://ui.shadcn.com/) で作っています。コンポーネントはライブラリとして読み込むのではなく、`resources/js/Components/ui/` にソースコードとして追加されています。
+
+コンポーネントを追加するときは、`todo-app` で次のコマンドを実行します（設定は `components.json`）。
+
+```bash
+npx shadcn@latest add <コンポーネント名>   # 例: npx shadcn@latest add tabs
+```
+
+- テーマの色は `resources/css/app.css` の CSS 変数で定義しています。
+- ライト／ダークは OS の設定に合わせて切り替わります（`next-themes`）。
+- macOS では大文字小文字を区別しないため、`components.json` の出力先は既存の `Components` に合わせています。
+
 ## ディレクトリ構成（主要部分）
 
 ```text
@@ -164,10 +179,12 @@ todo-app/
 ├── lang/ja/                    # 日本語の翻訳（入力エラー、エラー、タスク、タグ）
 ├── resources/
 │   ├── js/
-│   │   ├── Components/Task/    # タスクの一覧項目、作成・編集フォーム、詳細表示
-│   │   ├── Components/Tag/     # タグ管理画面
+│   │   ├── Components/ui/      # shadcn/ui のコンポーネント（CLI で追加したもの）
+│   │   ├── Components/Task/    # タスクの一覧項目、作成・編集ダイアログ、詳細ダイアログ
+│   │   ├── Components/Tag/     # タグ管理ダイアログ
 │   │   ├── Pages/              # Dashboard, Task/Index, Profile, Auth
 │   │   ├── lib/api.ts          # API クライアントとエラー処理のヘルパー
+│   │   ├── lib/task.ts         # ステータス・優先度の表示名や色などタスク表示の共通処理
 │   │   └── types/              # 型定義
 │   └── views/emails/           # リマインドメールのテンプレート
 ├── routes/
