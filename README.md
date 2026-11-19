@@ -1,6 +1,6 @@
 # todo
 
-Laravel 11 + Inertia.js + React (TypeScript) で作ったタスク管理アプリです。
+Laravel 12 + Inertia.js + React (TypeScript) で作ったタスク管理アプリです。
 
 アプリ本体は [`todo-app/`](todo-app/) にあります。機能、セットアップ方法、API などは [`todo-app/README.md`](todo-app/README.md) を見てください。
 
