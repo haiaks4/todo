@@ -2,7 +2,7 @@
 
 import { cn } from 'cn';
 import { Tooltip as TooltipPrimitive } from 'radix-ui';
-import * as React from 'react';
+import type * as React from 'react';
 
 function TooltipProvider({
     delayDuration = 0,

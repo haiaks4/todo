@@ -1,3 +1,5 @@
+import { useForm } from '@inertiajs/react';
+import { type FormEventHandler, useRef, useState } from 'react';
 import InputError from '@/Components/InputError';
 import { Button } from '@/Components/ui/button';
 import {
@@ -17,8 +19,6 @@ import {
 } from '@/Components/ui/dialog';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
-import { useForm } from '@inertiajs/react';
-import { FormEventHandler, useRef, useState } from 'react';
 
 export default function DeleteUserForm() {
     const [open, setOpen] = useState(false);

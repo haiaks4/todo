@@ -1,5 +1,5 @@
-import { cn } from '@/lib/utils';
 import { ListTodo } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function AppLogo({ className }: { className?: string }) {
     return (

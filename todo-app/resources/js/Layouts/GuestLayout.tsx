@@ -1,7 +1,7 @@
+import { ListTodo } from 'lucide-react';
+import type { PropsWithChildren } from 'react';
 import AppLogo from '@/Components/AppLogo';
 import { Card, CardContent } from '@/Components/ui/card';
-import { ListTodo } from 'lucide-react';
-import { PropsWithChildren } from 'react';
 
 export default function GuestLayout({ children }: PropsWithChildren) {
     return (

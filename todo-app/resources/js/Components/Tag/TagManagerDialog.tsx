@@ -1,3 +1,7 @@
+import { Check, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 import ConfirmDialog from '@/Components/ConfirmDialog';
 import { Alert, AlertDescription } from '@/Components/ui/alert';
 import { Badge } from '@/Components/ui/badge';
@@ -12,11 +16,7 @@ import {
 } from '@/Components/ui/dialog';
 import { Input } from '@/Components/ui/input';
 import { api, getErrorMessage, getValidationErrors } from '@/lib/api';
-import { Tag } from '@/types';
-import { Check, Pencil, Plus, Trash2, X } from 'lucide-react';
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
+import type { Tag } from '@/types';
 
 interface Props {
     open: boolean;

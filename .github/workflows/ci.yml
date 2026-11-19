@@ -65,8 +65,8 @@ jobs:
       - name: 型チェック
         run: npx tsc --noEmit
 
-      - name: Lint
-        run: npx eslint resources/js --ext .js,.jsx,.ts,.tsx
+      - name: Lint・フォーマット（Biome）
+        run: npx biome ci --reporter=github
 
       - name: ビルド
         run: npx vite build
