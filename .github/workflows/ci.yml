@@ -69,7 +69,7 @@ jobs:
         run: npx biome ci --reporter=github
 
       - name: テスト（フロントエンド）
-        run: npm run test:js
+        run: npm test
 
       - name: ビルド
         run: npx vite build

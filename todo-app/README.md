@@ -39,7 +39,7 @@ Laravel 12 + Inertia.js + React (TypeScript) で作ったタスク管理アプ�
 | UI コンポーネント | [shadcn/ui](https://ui.shadcn.com/)（Radix UI ベース）、lucide-react（アイコン）、sonner（通知） |
 | フロントエンドのライブラリ | SWR（データ取得）、react-hook-form（フォーム）、dnd-kit（並び替え）、Recharts（グラフ） |
 | DB | SQLite（既定）／ MySQL 8（Laravel Sail 使用時） |
-| テスト | PHPUnit 11 |
+| テスト | PHPUnit 11（バックエンド）、Vitest・React Testing Library（フロントエンド） |
 | Lint・フォーマット | Biome |
 
 ## 必要な環境
@@ -141,17 +141,18 @@ php artisan schedule:list     # 登録されているスケジュールの確認
 
 ```bash
 php artisan test   # バックエンド（PHPUnit）
-npm run test:js    # フロントエンド（Node の組み込みテスト。resources/js の *.test.mjs）
+npm test           # フロントエンド（Vitest。resources/js の *.test.ts / *.test.tsx）
+npm run test:watch # フロントエンドのテストを、ファイルの変更を監視しながら実行
 ```
 
-バックエンドのテストは SQLite のメモリ上の DB で実行されます（`phpunit.xml` で設定）。MySQL やビルド済みのフロントエンドは必要ありません。フロントエンドのテストは追加のパッケージなしで、Node.js 22 以上の組み込み機能（`node --test` と TypeScript の型の除去）で動きます。
+バックエンドのテストは SQLite のメモリ上の DB で実行されます（`phpunit.xml` で設定）。MySQL やビルド済みのフロントエンドは必要ありません。フロントエンドのテストは [Vitest](https://vitest.dev/) と [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/) で書き、jsdom（ブラウザを模した環境）で実行します（設定は `vitest.config.ts`）。関数のテストはテスト対象の隣に `*.test.ts`、コンポーネントのテストは `*.test.tsx` として置きます。
 
 ## CI
 
 GitHub Actions（`.github/workflows/ci.yml`）で、プルリクエストと `main`・`develop` への push のたびに次を実行します。
 
 - バックエンド：`php artisan test`
-- フロントエンド：型チェック（`tsc --noEmit`）、Biome による Lint・フォーマットのチェック（`biome ci`）、テスト（`npm run test:js`）、ビルド（`vite build`）
+- フロントエンド：型チェック（`tsc --noEmit`）、Biome による Lint・フォーマットのチェック（`biome ci`）、テスト（`npm test`）、ビルド（`vite build`）
 
 ## コード品質
 
