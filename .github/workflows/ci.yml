@@ -21,7 +21,7 @@ jobs:
     name: バックエンド（PHPUnit）
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -30,7 +30,7 @@ jobs:
           coverage: none
 
       - name: Composer のキャッシュ
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.composer/cache/files
           key: composer-${{ hashFiles('todo-app/composer.lock') }}
@@ -51,9 +51,9 @@ jobs:
     name: フロントエンド（型チェック・Lint・ビルド）
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: npm
