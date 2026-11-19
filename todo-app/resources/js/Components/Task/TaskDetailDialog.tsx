@@ -1,14 +1,14 @@
 import { CalendarClock } from 'lucide-react';
+import {
+    ResponsiveDialog,
+    ResponsiveDialogContent,
+    ResponsiveDialogDescription,
+    ResponsiveDialogFooter,
+    ResponsiveDialogHeader,
+    ResponsiveDialogTitle,
+} from '@/Components/ResponsiveDialog';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/Components/ui/dialog';
 import {
     formatDateTime,
     isOverdue,
@@ -32,18 +32,18 @@ export default function TaskDetailDialog({
     onEdit,
 }: Props) {
     return (
-        <Dialog open={task !== null} onOpenChange={onOpenChange}>
+        <ResponsiveDialog open={task !== null} onOpenChange={onOpenChange}>
             {task && (
-                <DialogContent className="sm:max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle className="pr-6 break-words">
+                <ResponsiveDialogContent className="sm:max-w-lg">
+                    <ResponsiveDialogHeader>
+                        <ResponsiveDialogTitle className="pr-6 break-words">
                             {task.title}
-                        </DialogTitle>
-                        <DialogDescription>
+                        </ResponsiveDialogTitle>
+                        <ResponsiveDialogDescription>
                             作成日時：
                             {formatDateTime(task.created_at, { year: true })}
-                        </DialogDescription>
-                    </DialogHeader>
+                        </ResponsiveDialogDescription>
+                    </ResponsiveDialogHeader>
 
                     <div className="space-y-4 text-sm">
                         <div className="flex flex-wrap gap-2">
@@ -93,7 +93,7 @@ export default function TaskDetailDialog({
                         )}
                     </div>
 
-                    <DialogFooter>
+                    <ResponsiveDialogFooter>
                         <Button
                             variant="outline"
                             onClick={() => onOpenChange(false)}
@@ -101,9 +101,9 @@ export default function TaskDetailDialog({
                             閉じる
                         </Button>
                         <Button onClick={() => onEdit(task)}>編集</Button>
-                    </DialogFooter>
-                </DialogContent>
+                    </ResponsiveDialogFooter>
+                </ResponsiveDialogContent>
             )}
-        </Dialog>
+        </ResponsiveDialog>
     );
 }

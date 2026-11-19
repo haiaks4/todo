@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Task\BulkDestroyTaskRequest;
+use App\Http\Requests\Task\BulkUpdateStatusTaskRequest;
 use App\Http\Requests\Task\ReorderTaskRequest;
+use App\Http\Requests\Task\RestoreTaskRequest;
 use App\Http\Requests\Task\StoreTaskRequest;
 use App\Http\Requests\Task\UpdateTaskRequest;
 use App\Models\Task;
@@ -80,6 +82,24 @@ class TaskController extends Controller
     public function bulkDestroy(BulkDestroyTaskRequest $request): JsonResponse
     {
         $this->taskRepository->bulkDelete($request->user(), $request->validated('ids'));
+
+        return response()->json(null, 204);
+    }
+
+    public function restore(RestoreTaskRequest $request): JsonResponse
+    {
+        $this->taskRepository->restore($request->user(), $request->validated('ids'));
+
+        return response()->json(null, 204);
+    }
+
+    public function bulkUpdateStatus(BulkUpdateStatusTaskRequest $request): JsonResponse
+    {
+        $this->taskRepository->bulkUpdateStatus(
+            $request->user(),
+            $request->validated('ids'),
+            $request->validated('status'),
+        );
 
         return response()->json(null, 204);
     }

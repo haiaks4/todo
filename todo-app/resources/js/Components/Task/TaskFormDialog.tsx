@@ -2,16 +2,16 @@ import { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import InputError from '@/Components/InputError';
+import {
+    ResponsiveDialog,
+    ResponsiveDialogContent,
+    ResponsiveDialogDescription,
+    ResponsiveDialogFooter,
+    ResponsiveDialogHeader,
+    ResponsiveDialogTitle,
+} from '@/Components/ResponsiveDialog';
 import { Alert, AlertDescription } from '@/Components/ui/alert';
 import { Button } from '@/Components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/Components/ui/dialog';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import {
@@ -134,18 +134,18 @@ export default function TaskFormDialog({
     };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-lg">
+        <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+            <ResponsiveDialogContent className="sm:max-w-lg">
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-                    <DialogHeader>
-                        <DialogTitle>
+                    <ResponsiveDialogHeader>
+                        <ResponsiveDialogTitle>
                             {task ? 'タスクを編集' : 'タスクを作成'}
-                        </DialogTitle>
-                        <DialogDescription>
+                        </ResponsiveDialogTitle>
+                        <ResponsiveDialogDescription>
                             <span className="text-destructive">*</span>{' '}
                             は必須項目です。
-                        </DialogDescription>
-                    </DialogHeader>
+                        </ResponsiveDialogDescription>
+                    </ResponsiveDialogHeader>
 
                     {/* タイトル */}
                     <div className="space-y-2">
@@ -310,7 +310,7 @@ export default function TaskFormDialog({
                         </Alert>
                     )}
 
-                    <DialogFooter>
+                    <ResponsiveDialogFooter>
                         <Button
                             type="button"
                             variant="outline"
@@ -321,9 +321,9 @@ export default function TaskFormDialog({
                         <Button type="submit" disabled={isSubmitting}>
                             {isSubmitting ? '保存中...' : '保存'}
                         </Button>
-                    </DialogFooter>
+                    </ResponsiveDialogFooter>
                 </form>
-            </DialogContent>
-        </Dialog>
+            </ResponsiveDialogContent>
+        </ResponsiveDialog>
     );
 }

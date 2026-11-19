@@ -15,6 +15,9 @@ export const api = {
             axios.post(`/api/tasks/${id}/duplicate`).then((r) => r.data),
         bulkDelete: (ids: number[]) =>
             axios.post('/api/tasks/bulk-delete', { ids }),
+        restore: (ids: number[]) => axios.post('/api/tasks/restore', { ids }),
+        bulkUpdateStatus: (ids: number[], status: string) =>
+            axios.post('/api/tasks/bulk-status', { ids, status }),
         reorder: (ids: number[]) => axios.post('/api/tasks/reorder', { ids }),
     },
     tags: {

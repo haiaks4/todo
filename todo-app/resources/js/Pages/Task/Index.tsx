@@ -14,11 +14,21 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { Head } from '@inertiajs/react';
-import { Plus, RotateCw, Search, Tags, Trash2 } from 'lucide-react';
+import {
+    ArrowUpDown,
+    Check,
+    CheckCheck,
+    ListChecks,
+    Plus,
+    RotateCw,
+    Search,
+    Tags,
+    Trash2,
+    X,
+} from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
-import ConfirmDialog from '@/Components/ConfirmDialog';
 import TagManagerDialog from '@/Components/Tag/TagManagerDialog';
 import TaskDetailDialog from '@/Components/Task/TaskDetailDialog';
 import TaskFormDialog from '@/Components/Task/TaskFormDialog';
@@ -36,6 +46,7 @@ import {
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { api, fetcher, getErrorMessage } from '@/lib/api';
 import { PRIORITY_OPTIONS, STATUS_OPTIONS } from '@/lib/task';
+import { cn } from '@/lib/utils';
 import type { Status, Tag, Task } from '@/types';
 
 /** Select で「すべて」を表す値（Radix の Select は空文字を値にできない） */
@@ -52,12 +63,16 @@ export default function TaskIndex() {
     // ダイアログ状態
     const [formOpen, setFormOpen] = useState(false);
     const [tagManagerOpen, setTagManagerOpen] = useState(false);
-    const [confirmingBulkDelete, setConfirmingBulkDelete] = useState(false);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
     const [detailTask, setDetailTask] = useState<Task | null>(null);
 
-    // 一括選択
+    // 一括選択（スマホでは長押しか「選択」ボタンで選択モードに入る）
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const [selectModeOn, setSelectModeOn] = useState(false);
+    const selecting = selectModeOn || selectedIds.length > 0;
+
+    // 並び替えモード（スマホでドラッグハンドルを表示する）
+    const [reordering, setReordering] = useState(false);
 
     // ローカルタスクリスト（D&D用）
     const [localTasks, setLocalTasks] = useState<Task[]>([]);
@@ -162,10 +177,21 @@ export default function TaskIndex() {
         mutateTasks();
     };
 
-    const handleSelect = (id: number) => {
+    const handleToggleSelect = (id: number) => {
         setSelectedIds((prev) =>
             prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
         );
+    };
+
+    const handleLongPress = (id: number) => {
+        setReordering(false);
+        setSelectModeOn(true);
+        setSelectedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    };
+
+    const exitSelection = () => {
+        setSelectModeOn(false);
+        setSelectedIds([]);
     };
 
     const allSelected =
@@ -175,12 +201,55 @@ export default function TaskIndex() {
         setSelectedIds(allSelected ? [] : localTasks.map((t) => t.id));
     };
 
-    const handleBulkDelete = async () => {
-        if (selectedIds.length === 0) return;
+    /** 削除して「元に戻す」付きの通知を出す（確認ダイアログの代わり） */
+    const deleteWithUndo = async (ids: number[], message: string) => {
+        if (ids.length === 0) return;
+        setLocalTasks((prev) => prev.filter((t) => !ids.includes(t.id)));
         try {
-            await api.tasks.bulkDelete(selectedIds);
-            toast.success(`${selectedIds.length} 件のタスクを削除しました。`);
-            setSelectedIds([]);
+            if (ids.length === 1) await api.tasks.delete(ids[0]);
+            else await api.tasks.bulkDelete(ids);
+        } catch (e) {
+            toast.error(getErrorMessage(e));
+            mutateTasks();
+            return;
+        }
+        mutateTasks();
+        toast.success(message, {
+            action: {
+                label: '元に戻す',
+                onClick: async () => {
+                    try {
+                        await api.tasks.restore(ids);
+                        toast.success('削除を取り消しました。');
+                    } catch (e) {
+                        toast.error(getErrorMessage(e));
+                    }
+                    mutateTasks();
+                },
+            },
+        });
+    };
+
+    const handleDelete = (task: Task) =>
+        deleteWithUndo([task.id], `「${task.title}」を削除しました。`);
+
+    const handleBulkDelete = async () => {
+        const ids = selectedIds;
+        exitSelection();
+        await deleteWithUndo(ids, `${ids.length} 件のタスクを削除しました。`);
+    };
+
+    const handleBulkDone = async () => {
+        const ids = selectedIds;
+        exitSelection();
+        setLocalTasks((prev) =>
+            prev.map((t) =>
+                ids.includes(t.id) ? { ...t, status: 'done' } : t,
+            ),
+        );
+        try {
+            await api.tasks.bulkUpdateStatus(ids, 'done');
+            toast.success(`${ids.length} 件のタスクを完了にしました。`);
         } catch (e) {
             toast.error(getErrorMessage(e));
         }
@@ -215,11 +284,11 @@ export default function TaskIndex() {
         <AuthenticatedLayout header="タスク管理">
             <Head title="タスク管理" />
 
-            <div className="py-8">
+            <div className={cn('pt-8 pb-28', !selecting && 'sm:pb-8')}>
                 <div className="mx-auto max-w-4xl space-y-4 px-4 sm:px-6 lg:px-8">
                     {/* ツールバー */}
                     <div className="flex flex-wrap items-center gap-2">
-                        <Button onClick={openCreate}>
+                        <Button onClick={openCreate} className="hidden sm:flex">
                             <Plus />
                             タスクを作成
                         </Button>
@@ -230,15 +299,34 @@ export default function TaskIndex() {
                             <Tags />
                             タグ管理
                         </Button>
-                        {selectedIds.length > 0 && (
-                            <Button
-                                variant="destructive"
-                                className="ml-auto"
-                                onClick={() => setConfirmingBulkDelete(true)}
-                            >
-                                <Trash2 />
-                                選択したタスクを削除（{selectedIds.length}）
-                            </Button>
+                        {localTasks.length > 0 && (
+                            <div className="ml-auto flex gap-2 sm:hidden">
+                                <Button
+                                    variant={reordering ? 'default' : 'outline'}
+                                    onClick={() => {
+                                        exitSelection();
+                                        setReordering((v) => !v);
+                                    }}
+                                    aria-pressed={reordering}
+                                >
+                                    {reordering ? <Check /> : <ArrowUpDown />}
+                                    {reordering ? '完了' : '並び替え'}
+                                </Button>
+                                {!reordering && (
+                                    <Button
+                                        variant="outline"
+                                        onClick={() =>
+                                            selecting
+                                                ? exitSelection()
+                                                : setSelectModeOn(true)
+                                        }
+                                        aria-pressed={selecting}
+                                    >
+                                        <ListChecks />
+                                        選択
+                                    </Button>
+                                )}
+                            </div>
                         )}
                     </div>
 
@@ -340,7 +428,7 @@ export default function TaskIndex() {
 
                     {/* 全選択 */}
                     {localTasks.length > 0 && (
-                        <div className="flex items-center gap-2 px-3 text-sm text-muted-foreground">
+                        <div className="hidden items-center gap-2 px-3 text-sm text-muted-foreground sm:flex">
                             <Checkbox
                                 id="select-all"
                                 checked={
@@ -417,16 +505,24 @@ export default function TaskIndex() {
                                             selected={selectedIds.includes(
                                                 task.id,
                                             )}
-                                            onSelect={handleSelect}
+                                            selecting={selecting}
+                                            reordering={reordering}
+                                            onToggleSelect={handleToggleSelect}
+                                            onLongPress={handleLongPress}
                                             onDetail={setDetailTask}
                                             onEdit={openEdit}
-                                            onDeleted={() => mutateTasks()}
+                                            onDelete={handleDelete}
                                             onDuplicated={() => mutateTasks()}
                                             onStatusChange={handleStatusChange}
                                         />
                                     ))}
                                 </div>
                             </SortableContext>
+                            <p className="pt-2 text-center text-xs text-muted-foreground sm:hidden">
+                                {reordering
+                                    ? '左端のつまみをドラッグして並び替えます'
+                                    : '右にスワイプで完了、左にスワイプで削除、長押しで選択できます'}
+                            </p>
                         </DndContext>
                     )}
                 </div>
@@ -456,13 +552,62 @@ export default function TaskIndex() {
                 }}
             />
 
-            <ConfirmDialog
-                open={confirmingBulkDelete}
-                onOpenChange={setConfirmingBulkDelete}
-                title="選択したタスクを削除しますか？"
-                description={`${selectedIds.length} 件のタスクを削除します。`}
-                onConfirm={handleBulkDelete}
-            />
+            {/* タスク作成ボタン（スマホ。親指が届く右下に置く） */}
+            {!selecting && !reordering && (
+                <Button
+                    size="icon"
+                    onClick={openCreate}
+                    className="fixed right-4 bottom-[max(1.5rem,env(safe-area-inset-bottom))] z-40 size-14 rounded-full shadow-lg sm:hidden [&_svg:not([class*='size-'])]:size-6"
+                    aria-label="タスクを作成"
+                >
+                    <Plus />
+                </Button>
+            )}
+
+            {/* 選択中の操作バー */}
+            {selecting && (
+                <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_12px_rgb(0_0_0/0.05)] backdrop-blur">
+                    <div className="mx-auto flex max-w-4xl items-center gap-1 px-2 py-2 sm:gap-2 sm:px-6 lg:px-8">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={exitSelection}
+                            aria-label="選択をやめる"
+                        >
+                            <X />
+                        </Button>
+                        <span className="text-sm font-medium tabular-nums">
+                            {selectedIds.length} 件選択
+                        </span>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleSelectAll}
+                            className="sm:hidden"
+                        >
+                            {allSelected ? '選択解除' : 'すべて'}
+                        </Button>
+                        <div className="ml-auto flex gap-1 sm:gap-2">
+                            <Button
+                                variant="outline"
+                                onClick={handleBulkDone}
+                                disabled={selectedIds.length === 0}
+                            >
+                                <CheckCheck />
+                                完了
+                            </Button>
+                            <Button
+                                variant="destructive"
+                                onClick={handleBulkDelete}
+                                disabled={selectedIds.length === 0}
+                            >
+                                <Trash2 />
+                                削除
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </AuthenticatedLayout>
     );
 }

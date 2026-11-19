@@ -112,6 +112,62 @@ class TaskApiTest extends TestCase
         $this->assertSoftDeleted($mine);
     }
 
+    public function test_restore_brings_back_deleted_tasks_in_original_position(): void
+    {
+        $a = Task::factory()->for($this->user)->create(['order' => 1]);
+        $b = Task::factory()->for($this->user)->create(['order' => 2]);
+        $c = Task::factory()->for($this->user)->create(['order' => 3]);
+
+        $this->actingAs($this->user)->deleteJson("/api/tasks/{$b->id}")->assertNoContent();
+
+        $this->actingAs($this->user)
+            ->postJson('/api/tasks/restore', ['ids' => [$b->id]])
+            ->assertNoContent();
+
+        $this->assertNotSoftDeleted($b);
+        $this->assertSame(
+            [$a->id, $b->id, $c->id],
+            $this->actingAs($this->user)->getJson('/api/tasks')->json('*.id'),
+        );
+    }
+
+    public function test_restore_rejects_other_users_and_not_deleted_tasks(): void
+    {
+        $others = Task::factory()->create();
+        $others->delete();
+        $alive = Task::factory()->for($this->user)->create();
+
+        $this->actingAs($this->user)
+            ->postJson('/api/tasks/restore', ['ids' => [$others->id]])
+            ->assertUnprocessable();
+        $this->actingAs($this->user)
+            ->postJson('/api/tasks/restore', ['ids' => [$alive->id]])
+            ->assertUnprocessable();
+
+        $this->assertSoftDeleted($others);
+    }
+
+    public function test_bulk_status_updates_only_own_tasks(): void
+    {
+        $mine = Task::factory()->for($this->user)->count(2)->create(['status' => 'todo']);
+        $others = Task::factory()->create(['status' => 'todo']);
+
+        $this->actingAs($this->user)
+            ->postJson('/api/tasks/bulk-status', ['ids' => [...$mine->pluck('id'), $others->id], 'status' => 'done'])
+            ->assertUnprocessable();
+        $this->assertSame('todo', $others->fresh()->status);
+
+        $this->actingAs($this->user)
+            ->postJson('/api/tasks/bulk-status', ['ids' => $mine->pluck('id')->all(), 'status' => 'done'])
+            ->assertNoContent();
+
+        $mine->each(fn ($t) => $this->assertSame('done', $t->fresh()->status));
+
+        $this->actingAs($this->user)
+            ->postJson('/api/tasks/bulk-status', ['ids' => [$mine[0]->id], 'status' => 'archived'])
+            ->assertUnprocessable();
+    }
+
     public function test_partial_reorder_keeps_relative_position_of_other_tasks(): void
     {
         $a = Task::factory()->for($this->user)->create(['order' => 1, 'status' => 'todo']);

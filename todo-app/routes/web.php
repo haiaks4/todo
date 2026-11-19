@@ -41,6 +41,8 @@ Route::middleware('auth')->group(function () {
     // Task API
     // 静的なパスは {task} より先に定義する
     Route::post('/api/tasks/bulk-delete', [TaskController::class, 'bulkDestroy'])->name('task.bulk-destroy');
+    Route::post('/api/tasks/restore', [TaskController::class, 'restore'])->name('task.restore');
+    Route::post('/api/tasks/bulk-status', [TaskController::class, 'bulkUpdateStatus'])->name('task.bulk-status');
     Route::post('/api/tasks/reorder', [TaskController::class, 'reorder'])->name('task.reorder');
     Route::get('/api/tasks', [TaskController::class, 'list'])->name('task.list');
     Route::post('/api/tasks', [TaskController::class, 'store'])->name('task.store');

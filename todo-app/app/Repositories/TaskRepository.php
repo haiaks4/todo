@@ -66,6 +66,17 @@ class TaskRepository implements TaskRepositoryInterface
         $user->tasks()->whereIn('id', $ids)->delete();
     }
 
+    public function restore(User $user, array $ids): void
+    {
+        // 削除前の order を保持しているので、元の位置に戻る
+        $user->tasks()->onlyTrashed()->whereIn('id', $ids)->restore();
+    }
+
+    public function bulkUpdateStatus(User $user, array $ids, string $status): void
+    {
+        $user->tasks()->whereIn('id', $ids)->update(['status' => $status]);
+    }
+
     public function reorder(User $user, array $ids): void
     {
         // フィルター中など一部のタスクだけが並び替えられた場合でも、
