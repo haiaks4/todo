@@ -1,4 +1,5 @@
-import PrimaryButton from '@/Components/PrimaryButton';
+import { Alert, AlertDescription } from '@/Components/ui/alert';
+import { Button } from '@/Components/ui/button';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
@@ -8,43 +9,41 @@ export default function VerifyEmail({ status }: { status?: string }) {
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
-
         post(route('verification.send'));
     };
 
     return (
         <GuestLayout>
-            <Head title="Email Verification" />
+            <Head title="メールアドレスの確認" />
 
-            <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-                Thanks for signing up! Before getting started, could you verify
-                your email address by clicking on the link we just emailed to
-                you? If you didn't receive the email, we will gladly send you
-                another.
+            <div className="mb-6">
+                <h2 className="text-2xl font-bold">メールアドレスの確認</h2>
+                <p className="mt-2 text-sm text-muted-foreground">
+                    ご登録ありがとうございます。お送りしたメールのリンクをクリックして、メールアドレスを確認してください。メールが届いていない場合は、もう一度送信できます。
+                </p>
             </div>
 
             {status === 'verification-link-sent' && (
-                <div className="mb-4 text-sm font-medium text-green-600 dark:text-green-400">
-                    A new verification link has been sent to the email address
-                    you provided during registration.
-                </div>
+                <Alert className="mb-4">
+                    <AlertDescription>
+                        確認用のリンクを、登録したメールアドレスに再送信しました。
+                    </AlertDescription>
+                </Alert>
             )}
 
-            <form onSubmit={submit}>
-                <div className="mt-4 flex items-center justify-between">
-                    <PrimaryButton disabled={processing}>
-                        Resend Verification Email
-                    </PrimaryButton>
+            <form
+                onSubmit={submit}
+                className="flex items-center justify-between gap-4"
+            >
+                <Button type="submit" disabled={processing}>
+                    確認メールを再送信
+                </Button>
 
-                    <Link
-                        href={route('logout')}
-                        method="post"
-                        as="button"
-                        className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:text-gray-400 dark:hover:text-gray-100 dark:focus:ring-offset-gray-800"
-                    >
-                        Log Out
+                <Button asChild variant="link">
+                    <Link href={route('logout')} method="post" as="button">
+                        ログアウト
                     </Link>
-                </div>
+                </Button>
             </form>
         </GuestLayout>
     );

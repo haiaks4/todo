@@ -1,6 +1,7 @@
 import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import TextInput from '@/Components/TextInput';
+import { Button } from '@/Components/ui/button';
+import { Input } from '@/Components/ui/input';
+import { Label } from '@/Components/ui/label';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
@@ -28,65 +29,71 @@ export default function ResetPassword({
 
     return (
         <GuestLayout>
-            <Head title="パスワード再設定" />
+            <Head title="パスワードの再設定" />
 
             <div className="mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">パスワード再設定</h2>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                <h2 className="text-2xl font-bold">パスワードの再設定</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
                     新しいパスワードを入力してください
                 </p>
             </div>
 
             <form onSubmit={submit} className="space-y-5">
-                <div>
-                    <InputLabel htmlFor="email" value="メールアドレス" />
-                    <TextInput
+                <div className="space-y-2">
+                    <Label htmlFor="email">メールアドレス</Label>
+                    <Input
                         id="email"
                         type="email"
                         name="email"
                         value={data.email}
-                        className="mt-1 block w-full"
                         autoComplete="username"
+                        aria-invalid={!!errors.email}
                         onChange={(e) => setData('email', e.target.value)}
                     />
-                    <InputError message={errors.email} className="mt-2" />
+                    <InputError message={errors.email} />
                 </div>
 
-                <div>
-                    <InputLabel htmlFor="password" value="新しいパスワード" />
-                    <TextInput
+                <div className="space-y-2">
+                    <Label htmlFor="password">新しいパスワード</Label>
+                    <Input
                         id="password"
                         type="password"
                         name="password"
                         value={data.password}
-                        className="mt-1 block w-full"
                         autoComplete="new-password"
-                        isFocused={true}
+                        autoFocus
+                        aria-invalid={!!errors.password}
                         onChange={(e) => setData('password', e.target.value)}
                     />
-                    <InputError message={errors.password} className="mt-2" />
+                    <InputError message={errors.password} />
                 </div>
 
-                <div>
-                    <InputLabel htmlFor="password_confirmation" value="新しいパスワード（確認）" />
-                    <TextInput
+                <div className="space-y-2">
+                    <Label htmlFor="password_confirmation">
+                        新しいパスワード（確認）
+                    </Label>
+                    <Input
+                        id="password_confirmation"
                         type="password"
                         name="password_confirmation"
                         value={data.password_confirmation}
-                        className="mt-1 block w-full"
                         autoComplete="new-password"
-                        onChange={(e) => setData('password_confirmation', e.target.value)}
+                        aria-invalid={!!errors.password_confirmation}
+                        onChange={(e) =>
+                            setData('password_confirmation', e.target.value)
+                        }
                     />
-                    <InputError message={errors.password_confirmation} className="mt-2" />
+                    <InputError message={errors.password_confirmation} />
                 </div>
 
-                <button
+                <Button
                     type="submit"
+                    size="lg"
+                    className="w-full"
                     disabled={processing}
-                    className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
                 >
                     {processing ? '更新中...' : 'パスワードを更新'}
-                </button>
+                </Button>
             </form>
         </GuestLayout>
     );
