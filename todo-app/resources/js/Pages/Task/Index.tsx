@@ -19,6 +19,7 @@ import {
     ArrowUpDown,
     Check,
     CheckCheck,
+    ChevronRight,
     ListChecks,
     Plus,
     RotateCw,
@@ -172,6 +173,18 @@ export default function TaskIndex() {
     const visibleTasks = localTasks.filter((t) =>
         matchesDueView(t, dueView, now),
     );
+    // 完了したタスクは一覧の下に折りたたむ（「完了」で絞り込んでいるときを除く）
+    const [showDone, setShowDone] = usePersistentState('tasks.showDone', false);
+    const separateDone = filterStatus !== 'done';
+    const activeTasks = separateDone
+        ? visibleTasks.filter((t) => t.status !== 'done')
+        : visibleTasks;
+    const doneTasks = separateDone
+        ? visibleTasks.filter((t) => t.status === 'done')
+        : [];
+    // 画面に出ているタスク（全選択の対象）
+    const shownTasks = showDone ? [...activeTasks, ...doneTasks] : activeTasks;
+
     const dueViewCounts = Object.fromEntries(
         DUE_VIEWS.map((v) => [
             v.value,
@@ -226,8 +239,20 @@ export default function TaskIndex() {
             await api.tasks.update(task.id, { status });
         } catch (e) {
             toast.error(getErrorMessage(e));
+            mutateTasks();
+            return;
         }
         mutateTasks();
+
+        // 完了にしたタスクは一覧の下へ移るので、取り消せるようにしておく
+        if (status === 'done' && task.status !== 'done') {
+            toast.success(`「${task.title}」を完了にしました。`, {
+                action: {
+                    label: '元に戻す',
+                    onClick: () => handleStatusChange(task, task.status),
+                },
+            });
+        }
     };
 
     const handleToggleSelect = (id: number) => {
@@ -248,11 +273,11 @@ export default function TaskIndex() {
     };
 
     const allSelected =
-        visibleTasks.length > 0 &&
-        visibleTasks.every((t) => selectedIds.includes(t.id));
+        shownTasks.length > 0 &&
+        shownTasks.every((t) => selectedIds.includes(t.id));
 
     const handleSelectAll = () => {
-        setSelectedIds(allSelected ? [] : visibleTasks.map((t) => t.id));
+        setSelectedIds(allSelected ? [] : shownTasks.map((t) => t.id));
     };
 
     /** 削除して「元に戻す」付きの通知を出す（確認ダイアログの代わり） */
@@ -368,7 +393,7 @@ export default function TaskIndex() {
         sort === 'due_date'
             ? DUE_BUCKETS.map((bucket) => ({
                   ...bucket,
-                  tasks: visibleTasks.filter(
+                  tasks: activeTasks.filter(
                       (t) => getDueBucket(t, now) === bucket.key,
                   ),
               })).filter((g) => g.tasks.length > 0)
@@ -647,6 +672,8 @@ export default function TaskIndex() {
                                 <label htmlFor="select-all">すべて選択</label>
                                 <span className="ml-auto">
                                     {visibleTasks.length} 件
+                                    {doneTasks.length > 0 &&
+                                        `（うち完了 ${doneTasks.length} 件）`}
                                 </span>
                             </div>
                         )}
@@ -698,7 +725,7 @@ export default function TaskIndex() {
                                 onDragEnd={handleDragEnd}
                             >
                                 <SortableContext
-                                    items={visibleTasks.map((t) => t.id)}
+                                    items={activeTasks.map((t) => t.id)}
                                     strategy={verticalListSortingStrategy}
                                 >
                                     {groups ? (
@@ -731,10 +758,58 @@ export default function TaskIndex() {
                                         </div>
                                     ) : (
                                         <div className="space-y-2">
-                                            {visibleTasks.map(renderTask)}
+                                            {activeTasks.map(renderTask)}
                                         </div>
                                     )}
                                 </SortableContext>
+
+                                {activeTasks.length === 0 && (
+                                    <p className="rounded-lg border border-dashed py-6 text-center text-sm text-muted-foreground">
+                                        未完了のタスクはありません
+                                    </p>
+                                )}
+
+                                {/* 完了済み（折りたたみ） */}
+                                {doneTasks.length > 0 && (
+                                    <section
+                                        aria-label="完了済み"
+                                        className="mt-5 space-y-2"
+                                    >
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setShowDone((v) => !v)
+                                            }
+                                            aria-expanded={showDone}
+                                            className="flex items-center gap-1.5 rounded-md px-1 py-1 text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                        >
+                                            <ChevronRight
+                                                className={cn(
+                                                    'size-4 transition-transform',
+                                                    showDone && 'rotate-90',
+                                                )}
+                                            />
+                                            完了済み
+                                            <span className="text-xs font-normal tabular-nums">
+                                                {doneTasks.length}
+                                            </span>
+                                        </button>
+                                        {showDone && (
+                                            <SortableContext
+                                                items={doneTasks.map(
+                                                    (t) => t.id,
+                                                )}
+                                                strategy={
+                                                    verticalListSortingStrategy
+                                                }
+                                            >
+                                                <div className="space-y-2">
+                                                    {doneTasks.map(renderTask)}
+                                                </div>
+                                            </SortableContext>
+                                        )}
+                                    </section>
+                                )}
                                 <p className="pt-2 text-center text-xs text-muted-foreground sm:hidden">
                                     {reordering
                                         ? '左端のつまみをドラッグして並び替えます'
