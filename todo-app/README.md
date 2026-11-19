@@ -1,6 +1,6 @@
 # Todo App
 
-Laravel 11 + Inertia.js + React (TypeScript) で作ったタスク管理アプリです。
+Laravel 12 + Inertia.js + React (TypeScript) で作ったタスク管理アプリです。
 
 ## 主な機能
 
@@ -20,7 +20,7 @@ Laravel 11 + Inertia.js + React (TypeScript) で作ったタスク管理アプ�
 
 | 区分 | 使用技術 |
 | --- | --- |
-| バックエンド | PHP 8.2 以上、Laravel 11、Inertia.js (Laravel)、Ziggy |
+| バックエンド | PHP 8.2 以上、Laravel 12、Inertia.js (Laravel)、Ziggy |
 | フロントエンド | React 19、TypeScript、Inertia.js (React)、Tailwind CSS 4、Vite 5 |
 | UI コンポーネント | [shadcn/ui](https://ui.shadcn.com/)（Radix UI ベース）、lucide-react（アイコン）、sonner（通知） |
 | フロントエンドのライブラリ | SWR（データ取得）、react-hook-form（フォーム）、dnd-kit（並び替え）、Recharts（グラフ） |
