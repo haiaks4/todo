@@ -19,7 +19,9 @@ export default function ForgotPassword({ status }: { status?: string }) {
             <Head title="パスワードをお忘れの方" />
 
             <div className="mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">パスワードをお忘れの方</h2>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    パスワードをお忘れの方
+                </h2>
                 <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                     登録済みのメールアドレスを入力してください。パスワード再設定用のリンクをお送りします。
                 </p>

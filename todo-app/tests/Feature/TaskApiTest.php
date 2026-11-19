@@ -32,10 +32,10 @@ class TaskApiTest extends TestCase
 
         $this->actingAs($this->user)
             ->postJson('/api/tasks', [
-                'title'    => '牛乳を買う',
+                'title' => '牛乳を買う',
                 'due_date' => '2026-11-20T10:30',
                 'priority' => 'high',
-                'tag_id'   => $tag->id,
+                'tag_id' => $tag->id,
             ])
             ->assertCreated()
             ->assertJsonPath('title', '牛乳を買う')
@@ -78,10 +78,10 @@ class TaskApiTest extends TestCase
 
         // % はワイルドカードではなく文字として扱われる
         $this->actingAs($this->user)
-            ->getJson('/api/tasks?search=' . urlencode('100%'))
+            ->getJson('/api/tasks?search='.urlencode('100%'))
             ->assertJsonCount(1)
             ->assertJsonPath('0.title', '100% 完了');
-        $this->actingAs($this->user)->getJson('/api/tasks?search=' . urlencode('%'))->assertJsonCount(1);
+        $this->actingAs($this->user)->getJson('/api/tasks?search='.urlencode('%'))->assertJsonCount(1);
     }
 
     public function test_user_cannot_modify_another_users_task(): void

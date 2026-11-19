@@ -14,25 +14,25 @@ class TaskRepository implements TaskRepositoryInterface
     {
         $query = $user->tasks()->with('tag')->orderBy('order')->orderBy('id');
 
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('status', $filters['status']);
         }
 
-        if (!empty($filters['tag_id'])) {
+        if (! empty($filters['tag_id'])) {
             $query->where('tag_id', $filters['tag_id']);
         }
 
-        if (!empty($filters['priority'])) {
+        if (! empty($filters['priority'])) {
             $query->where('priority', $filters['priority']);
         }
 
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             // LIKE のワイルドカード文字（% _）を文字列として扱うためにエスケープする。
             // MySQL / SQLite の双方で動作するようエスケープ文字には '!' を使用する。
-            $pattern = '%' . str_replace(['!', '%', '_'], ['!!', '!%', '!_'], (string) $filters['search']) . '%';
+            $pattern = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], (string) $filters['search']).'%';
             $query->where(function ($q) use ($pattern) {
                 $q->whereRaw("title LIKE ? ESCAPE '!'", [$pattern])
-                  ->orWhereRaw("description LIKE ? ESCAPE '!'", [$pattern]);
+                    ->orWhereRaw("description LIKE ? ESCAPE '!'", [$pattern]);
             });
         }
 
@@ -109,9 +109,9 @@ class TaskRepository implements TaskRepositoryInterface
     {
         return DB::transaction(function () use ($task) {
             $newTask = $task->replicate(['order']);
-            $newTask->title  = mb_strimwidth($task->title . ' のコピー', 0, 255);
+            $newTask->title = mb_strimwidth($task->title.' のコピー', 0, 255);
             $newTask->status = 'todo';
-            $newTask->order  = $this->maxOrder($task->user) + 1;
+            $newTask->order = $this->maxOrder($task->user) + 1;
             $newTask->save();
 
             return $newTask->load('tag');

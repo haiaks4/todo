@@ -34,7 +34,9 @@ export default function UpdateRemindForm({
                     <input
                         type="checkbox"
                         checked={data.remind_enabled}
-                        onChange={(e) => setData('remind_enabled', e.target.checked)}
+                        onChange={(e) =>
+                            setData('remind_enabled', e.target.checked)
+                        }
                         className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                     />
                     <span className="text-sm text-gray-700 dark:text-gray-300">
@@ -57,7 +59,9 @@ export default function UpdateRemindForm({
                         leave="transition ease-in-out"
                         leaveTo="opacity-0"
                     >
-                        <p className="text-sm text-gray-600 dark:text-gray-400">保存しました。</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                            保存しました。
+                        </p>
                     </Transition>
                 </div>
             </form>

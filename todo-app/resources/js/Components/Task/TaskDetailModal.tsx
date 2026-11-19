@@ -12,7 +12,11 @@ const PRIORITY_COLORS = {
     medium: 'bg-yellow-100 text-yellow-700',
     low: 'bg-green-100 text-green-700',
 } as const;
-const STATUS_LABELS = { todo: '未着手', in_progress: '進行中', done: '完了' } as const;
+const STATUS_LABELS = {
+    todo: '未着手',
+    in_progress: '進行中',
+    done: '完了',
+} as const;
 const STATUS_COLORS = {
     todo: 'bg-gray-100 text-gray-700',
     in_progress: 'bg-blue-100 text-blue-700',
@@ -24,7 +28,9 @@ export default function TaskDetailModal({ task, onClose, onEdit }: Props) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
             <div className="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
                 <div className="mb-4 flex items-start justify-between">
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{task.title}</h2>
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        {task.title}
+                    </h2>
                     <button
                         onClick={onClose}
                         className="ml-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
@@ -75,7 +81,8 @@ export default function TaskDetailModal({ task, onClose, onEdit }: Props) {
                     )}
 
                     <div className="text-xs text-gray-400">
-                        作成: {new Date(task.created_at).toLocaleString('ja-JP')}
+                        作成:{' '}
+                        {new Date(task.created_at).toLocaleString('ja-JP')}
                     </div>
                 </div>
 

@@ -19,10 +19,10 @@ Route::get('/dashboard', function () {
         ->pluck('aggregate', 'status');
 
     $stats = [
-        'total'       => (int) $counts->sum(),
-        'todo'        => (int) ($counts['todo'] ?? 0),
+        'total' => (int) $counts->sum(),
+        'todo' => (int) ($counts['todo'] ?? 0),
         'in_progress' => (int) ($counts['in_progress'] ?? 0),
-        'done'        => (int) ($counts['done'] ?? 0),
+        'done' => (int) ($counts['done'] ?? 0),
     ];
 
     return Inertia::render('Dashboard', ['stats' => $stats]);

@@ -25,7 +25,9 @@ export default function Register() {
             <Head title="新規登録" />
 
             <div className="mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">新規登録</h2>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    新規登録
+                </h2>
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                     アカウントを作成してください
                 </p>
@@ -78,7 +80,10 @@ export default function Register() {
                 </div>
 
                 <div>
-                    <InputLabel htmlFor="password_confirmation" value="パスワード（確認）" />
+                    <InputLabel
+                        htmlFor="password_confirmation"
+                        value="パスワード（確認）"
+                    />
                     <TextInput
                         id="password_confirmation"
                         type="password"
@@ -86,10 +91,15 @@ export default function Register() {
                         value={data.password_confirmation}
                         className="mt-1 block w-full"
                         autoComplete="new-password"
-                        onChange={(e) => setData('password_confirmation', e.target.value)}
+                        onChange={(e) =>
+                            setData('password_confirmation', e.target.value)
+                        }
                         required
                     />
-                    <InputError message={errors.password_confirmation} className="mt-2" />
+                    <InputError
+                        message={errors.password_confirmation}
+                        className="mt-2"
+                    />
                 </div>
 
                 <button

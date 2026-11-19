@@ -10,7 +10,11 @@ export default function Edit({
     mustVerifyEmail,
     status,
     remindEnabled,
-}: PageProps<{ mustVerifyEmail: boolean; status?: string; remindEnabled: boolean }>) {
+}: PageProps<{
+    mustVerifyEmail: boolean;
+    status?: string;
+    remindEnabled: boolean;
+}>) {
     return (
         <AuthenticatedLayout
             header={
@@ -36,7 +40,10 @@ export default function Edit({
                     </div>
 
                     <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8 dark:bg-gray-800">
-                        <UpdateRemindForm remindEnabled={remindEnabled} className="max-w-xl" />
+                        <UpdateRemindForm
+                            remindEnabled={remindEnabled}
+                            className="max-w-xl"
+                        />
                     </div>
 
                     <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8 dark:bg-gray-800">

@@ -31,7 +31,9 @@ export default function Login({
             <Head title="ログイン" />
 
             <div className="mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">ログイン</h2>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    ログイン
+                </h2>
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                     アカウントにサインインしてください
                 </p>
@@ -78,7 +80,9 @@ export default function Login({
                         <Checkbox
                             name="remember"
                             checked={data.remember}
-                            onChange={(e) => setData('remember', e.target.checked)}
+                            onChange={(e) =>
+                                setData('remember', e.target.checked)
+                            }
                         />
                         <span className="text-sm text-gray-600 dark:text-gray-400">
                             ログイン状態を保持する

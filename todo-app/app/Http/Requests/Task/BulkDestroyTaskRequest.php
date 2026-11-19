@@ -15,7 +15,7 @@ class BulkDestroyTaskRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'ids'   => ['required', 'array', 'max:1000'],
+            'ids' => ['required', 'array', 'max:1000'],
             'ids.*' => ['integer', 'distinct', Rule::exists('tasks', 'id')->where('user_id', $this->user()->id)->whereNull('deleted_at')],
         ];
     }

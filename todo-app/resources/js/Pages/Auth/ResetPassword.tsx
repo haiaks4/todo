@@ -31,7 +31,9 @@ export default function ResetPassword({
             <Head title="パスワード再設定" />
 
             <div className="mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">パスワード再設定</h2>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    パスワード再設定
+                </h2>
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                     新しいパスワードを入力してください
                 </p>
@@ -68,16 +70,24 @@ export default function ResetPassword({
                 </div>
 
                 <div>
-                    <InputLabel htmlFor="password_confirmation" value="新しいパスワード（確認）" />
+                    <InputLabel
+                        htmlFor="password_confirmation"
+                        value="新しいパスワード（確認）"
+                    />
                     <TextInput
                         type="password"
                         name="password_confirmation"
                         value={data.password_confirmation}
                         className="mt-1 block w-full"
                         autoComplete="new-password"
-                        onChange={(e) => setData('password_confirmation', e.target.value)}
+                        onChange={(e) =>
+                            setData('password_confirmation', e.target.value)
+                        }
                     />
-                    <InputError message={errors.password_confirmation} className="mt-2" />
+                    <InputError
+                        message={errors.password_confirmation}
+                        className="mt-2"
+                    />
                 </div>
 
                 <button
