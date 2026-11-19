@@ -1,66 +1,209 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Todo App
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel 11 + Inertia.js + React (TypeScript) で作ったタスク管理アプリです。
 
-## About Laravel
+## 主な機能
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **認証**：ユーザー登録・ログイン・パスワードリセット・プロフィール編集・アカウント削除（Laravel Breeze ベース）
+- **タスク管理**
+  - タスクの作成・編集・削除・複製
+  - タイトル、説明、期限、優先度（高・中・低）、ステータス（未着手・進行中・完了）、タグを設定できる
+  - キーワード検索と、ステータス・優先度・タグでの絞り込み
+  - ドラッグ&ドロップでの並び替え（絞り込み中でも、表示されていないタスクの順序は保たれる）
+  - チェックボックスで選択して一括削除
+  - 期限を過ぎた未完了タスクを強調表示
+- **タグ管理**：ユーザーごとにタグを作成・名前変更・削除できる。削除するとタスクからタグが外れる
+- **ダッシュボード**：ステータス別の件数と完了率をグラフで表示
+- **リマインドメール**：プロフィール画面で有効にすると、毎朝 8:00 に「期限が明日の未完了タスク」をメールで通知する
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 技術スタック
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+| 区分 | 使用技術 |
+| --- | --- |
+| バックエンド | PHP 8.2 以上、Laravel 11、Inertia.js (Laravel)、Ziggy |
+| フロントエンド | React 18、TypeScript、Inertia.js (React)、Tailwind CSS 3、Vite 5 |
+| フロントエンドのライブラリ | SWR（データ取得）、react-hook-form（フォーム）、dnd-kit（並び替え）、Recharts（グラフ） |
+| DB | SQLite（既定）／ MySQL 8（Laravel Sail 使用時） |
+| テスト | PHPUnit 11 |
 
-## Learning Laravel
+## 必要な環境
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+- PHP 8.2 以上（拡張モジュール `pdo_sqlite`・`mbstring` など Laravel の要件を満たすもの）
+- Composer 2
+- Node.js 18 以上と npm
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+## セットアップ（ローカル・SQLite）
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```bash
+cd todo-app
 
-## Laravel Sponsors
+# 依存パッケージのインストール
+composer install
+npm install
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+# 環境設定
+cp .env.example .env
+php artisan key:generate
 
-### Premium Partners
+# DB の作成とマイグレーション
+touch database/database.sqlite
+php artisan migrate
+```
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+### 起動
 
-## Contributing
+```bash
+composer run dev
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+次の 4 つを同時に起動します。
 
-## Code of Conduct
+| 名前 | コマンド | 役割 |
+| --- | --- | --- |
+| server | `php artisan serve` | アプリ本体（http://localhost:8000） |
+| queue | `php artisan queue:listen` | リマインドメールなどのジョブ処理 |
+| logs | `php artisan pail` | ログ表示（`pcntl` 拡張が必要） |
+| vite | `npm run dev` | フロントエンドの開発サーバー |
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+ブラウザで http://localhost:8000 を開き、ユーザー登録してから使います。
 
-## Security Vulnerabilities
+### リマインドメールを試す
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+リマインドはスケジューラから実行されるため、開発中は別のターミナルで次を起動します。
 
-## License
+```bash
+php artisan schedule:work     # スケジューラを常駐させる
+php artisan schedule:list     # 登録されているスケジュールの確認
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+既定では `MAIL_MAILER=log` なので、メールは送信されず `storage/logs/laravel.log` に出力されます。
+
+## Laravel Sail（Docker）で動かす場合
+
+`docker-compose.yml` は Sail 用です。MySQL・Redis・Mailpit などのコンテナが起動します。
+
+1. `.env` の DB 設定を MySQL 用に変更します。
+
+   ```dotenv
+   DB_CONNECTION=mysql
+   DB_HOST=mysql
+   DB_PORT=3306
+   DB_DATABASE=laravel
+   DB_USERNAME=sail
+   DB_PASSWORD=password
+
+   MAIL_MAILER=smtp
+   MAIL_HOST=mailpit
+   MAIL_PORT=1025
+   ```
+
+2. コンテナを起動してセットアップします。
+
+   ```bash
+   composer install
+   ./vendor/bin/sail up -d
+   ./vendor/bin/sail artisan key:generate
+   ./vendor/bin/sail artisan migrate
+   ./vendor/bin/sail npm install
+   ./vendor/bin/sail npm run dev
+   ```
+
+アプリは http://localhost で、Mailpit（受信メールの確認画面）は http://localhost:8025 で開けます。
+
+## 環境変数のポイント
+
+| 変数 | 既定値 | 説明 |
+| --- | --- | --- |
+| `APP_LOCALE` | `ja` | 入力エラーやエラーメッセージの言語。翻訳ファイルは `lang/ja` |
+| `APP_TIMEZONE` | `Asia/Tokyo` | タスクの期限とリマインドの判定に使うタイムゾーン |
+| `QUEUE_CONNECTION` | `database` | リマインドメールはキュー経由で送信される |
+| `MAIL_MAILER` | `log` | 本番では SMTP などに変更する |
+
+> **注意**：期限（`due_date`）はタイムゾーンなしの日時として保存し、`APP_TIMEZONE` の時刻として扱います。運用中に `APP_TIMEZONE` を変えると、既存の期限の意味が変わります。
+
+## テスト
+
+```bash
+php artisan test
+```
+
+テストは SQLite のメモリ上の DB で実行されます（`phpunit.xml` で設定）。MySQL やビルド済みのフロントエンドは必要ありません。
+
+## コード品質
+
+```bash
+npm run lint       # ESLint + Prettier（自動修正あり）
+npx tsc --noEmit   # TypeScript の型チェック
+npm run build      # 本番用ビルド（型チェックも含む）
+```
+
+## ディレクトリ構成（主要部分）
+
+```text
+todo-app/
+├── app/
+│   ├── Http/
+│   │   ├── Controllers/        # TaskController, TagController, ProfileController
+│   │   └── Requests/           # 入力チェック（Task/*, Tag/*）
+│   ├── Jobs/                   # SendTaskReminderJob（リマインド送信）
+│   ├── Mail/                   # TaskReminderMail
+│   ├── Models/                 # User, Task, Tag（いずれも論理削除）
+│   ├── Policies/               # TaskPolicy, TagPolicy（本人のデータのみ操作可）
+│   └── Repositories/           # DB 操作をまとめたリポジトリ（インターフェースは Contracts/）
+├── bootstrap/app.php           # ルーティングと、JSON API 用の例外ハンドリング
+├── database/
+│   ├── factories/              # User, Task, Tag のファクトリ
+│   └── migrations/
+├── lang/ja/                    # 日本語の翻訳（入力エラー、エラー、タスク、タグ）
+├── resources/
+│   ├── js/
+│   │   ├── Components/Task/    # タスクの一覧項目、作成・編集フォーム、詳細表示
+│   │   ├── Components/Tag/     # タグ管理画面
+│   │   ├── Pages/              # Dashboard, Task/Index, Profile, Auth
+│   │   ├── lib/api.ts          # API クライアントとエラー処理のヘルパー
+│   │   └── types/              # 型定義
+│   └── views/emails/           # リマインドメールのテンプレート
+├── routes/
+│   ├── web.php                 # 画面と JSON API のルート
+│   └── console.php             # スケジュール（毎朝 8:00 のリマインド）
+└── tests/Feature/              # 認証、プロフィール、タスク・タグ API のテスト
+```
+
+## 画面と API
+
+画面は Inertia で描画し、タスクとタグのデータは画面から JSON API を呼んで取得します。API はすべてログインが必要で（セッション認証）、本人のデータしか操作できません。
+
+| 画面 | パス |
+| --- | --- |
+| ダッシュボード | `/dashboard` |
+| タスク管理 | `/task` |
+| プロフィール | `/profile` |
+
+| メソッド | パス | 内容 |
+| --- | --- | --- |
+| GET | `/api/tasks` | タスク一覧（`search`・`status`・`priority`・`tag_id` で絞り込み） |
+| POST | `/api/tasks` | タスク作成 |
+| GET | `/api/tasks/{task}` | タスク詳細 |
+| PATCH | `/api/tasks/{task}` | タスク更新 |
+| DELETE | `/api/tasks/{task}` | タスク削除 |
+| POST | `/api/tasks/{task}/duplicate` | タスク複製（一覧の末尾に「〇〇 のコピー」として追加） |
+| POST | `/api/tasks/bulk-delete` | 一括削除（`ids`: タスク ID の配列） |
+| POST | `/api/tasks/reorder` | 並び替え（`ids`: 新しい並び順のタスク ID の配列） |
+| GET | `/api/tags` | タグ一覧 |
+| POST | `/api/tags` | タグ作成 |
+| PATCH | `/api/tags/{tag}` | タグ名の変更 |
+| DELETE | `/api/tags/{tag}` | タグ削除（関連タスクからタグを外す） |
+
+入力エラーのときは 422 を返し、`errors` にフィールドごとの日本語メッセージが入ります。
+
+## ブランチ運用
+
+`develop` から次のプレフィックスでブランチを作り、`develop` 向けにプルリクエストを出します。
+
+| プレフィックス | 用途 |
+| --- | --- |
+| `feature/` | 新機能 |
+| `fix/` | 不具合修正 |
+| `refactor/` | 動作を変えないコード整理 |
+| `docs/` | ドキュメント |
+| `chore/` | 依存関係の更新・設定変更など |
