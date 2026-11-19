@@ -1,16 +1,18 @@
-import { HTMLAttributes } from 'react';
+import { cn } from '@/lib/utils';
 
+/** フォーム項目の下に表示するエラーメッセージ */
 export default function InputError({
     message,
-    className = '',
-    ...props
-}: HTMLAttributes<HTMLParagraphElement> & { message?: string }) {
-    return message ? (
-        <p
-            {...props}
-            className={'text-sm text-red-600 dark:text-red-400 ' + className}
-        >
+    className,
+}: {
+    message?: string;
+    className?: string;
+}) {
+    if (!message) return null;
+
+    return (
+        <p role="alert" className={cn('text-sm text-destructive', className)}>
             {message}
         </p>
-    ) : null;
+    );
 }

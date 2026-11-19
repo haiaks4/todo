@@ -3,5 +3,6 @@
     "plugins": [
         "prettier-plugin-organize-imports",
         "prettier-plugin-tailwindcss"
-    ]
+    ],
+    "tailwindStylesheet": "./resources/css/app.css"
 }

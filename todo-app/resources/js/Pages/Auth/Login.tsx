@@ -1,7 +1,9 @@
-import Checkbox from '@/Components/Checkbox';
 import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import TextInput from '@/Components/TextInput';
+import { Alert, AlertDescription } from '@/Components/ui/alert';
+import { Button } from '@/Components/ui/button';
+import { Checkbox } from '@/Components/ui/checkbox';
+import { Input } from '@/Components/ui/input';
+import { Label } from '@/Components/ui/label';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
@@ -31,83 +33,86 @@ export default function Login({
             <Head title="ログイン" />
 
             <div className="mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">ログイン</h2>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    アカウントにサインインしてください
+                <h2 className="text-2xl font-bold">ログイン</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                    アカウントにログインしてください
                 </p>
             </div>
 
             {status && (
-                <div className="mb-4 rounded-md bg-green-50 p-3 text-sm font-medium text-green-700">
-                    {status}
-                </div>
+                <Alert className="mb-4">
+                    <AlertDescription>{status}</AlertDescription>
+                </Alert>
             )}
 
             <form onSubmit={submit} className="space-y-5">
-                <div>
-                    <InputLabel htmlFor="email" value="メールアドレス" />
-                    <TextInput
+                <div className="space-y-2">
+                    <Label htmlFor="email">メールアドレス</Label>
+                    <Input
                         id="email"
                         type="email"
                         name="email"
                         value={data.email}
-                        className="mt-1 block w-full"
                         autoComplete="username"
-                        isFocused={true}
+                        autoFocus
+                        aria-invalid={!!errors.email}
                         onChange={(e) => setData('email', e.target.value)}
                     />
-                    <InputError message={errors.email} className="mt-2" />
+                    <InputError message={errors.email} />
                 </div>
 
-                <div>
-                    <InputLabel htmlFor="password" value="パスワード" />
-                    <TextInput
+                <div className="space-y-2">
+                    <Label htmlFor="password">パスワード</Label>
+                    <Input
                         id="password"
                         type="password"
                         name="password"
                         value={data.password}
-                        className="mt-1 block w-full"
                         autoComplete="current-password"
+                        aria-invalid={!!errors.password}
                         onChange={(e) => setData('password', e.target.value)}
                     />
-                    <InputError message={errors.password} className="mt-2" />
+                    <InputError message={errors.password} />
                 </div>
 
                 <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-2">
+                    <div className="flex items-center gap-2">
                         <Checkbox
-                            name="remember"
+                            id="remember"
                             checked={data.remember}
-                            onChange={(e) => setData('remember', e.target.checked)}
+                            onCheckedChange={(checked) =>
+                                setData('remember', checked === true)
+                            }
                         />
-                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                        <Label htmlFor="remember" className="font-normal">
                             ログイン状態を保持する
-                        </span>
-                    </label>
+                        </Label>
+                    </div>
 
                     {canResetPassword && (
                         <Link
                             href={route('password.request')}
-                            className="text-sm text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
+                            className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
                         >
                             パスワードを忘れた方
                         </Link>
                     )}
                 </div>
 
-                <button
+                <Button
                     type="submit"
+                    size="lg"
+                    className="w-full"
                     disabled={processing}
-                    className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
                 >
                     {processing ? 'ログイン中...' : 'ログイン'}
-                </button>
+                </Button>
 
-                <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-center text-sm text-muted-foreground">
                     アカウントをお持ちでない方は{' '}
                     <Link
                         href={route('register')}
-                        className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
+                        className="font-medium text-foreground underline-offset-4 hover:underline"
                     >
                         新規登録
                     </Link>

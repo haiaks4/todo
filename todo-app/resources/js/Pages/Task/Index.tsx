@@ -1,10 +1,22 @@
-import TagManagerModal from '@/Components/Tag/TagManagerModal';
-import TaskDetailModal from '@/Components/Task/TaskDetailModal';
-import TaskFormModal from '@/Components/Task/TaskFormModal';
+import ConfirmDialog from '@/Components/ConfirmDialog';
+import TagManagerDialog from '@/Components/Tag/TagManagerDialog';
+import TaskDetailDialog from '@/Components/Task/TaskDetailDialog';
+import TaskFormDialog from '@/Components/Task/TaskFormDialog';
 import TaskItem from '@/Components/Task/TaskItem';
+import { Button } from '@/Components/ui/button';
+import { Checkbox } from '@/Components/ui/checkbox';
+import { Input } from '@/Components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/Components/ui/select';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { api, fetcher, getErrorMessage } from '@/lib/api';
-import { Tag, Task } from '@/types';
+import { PRIORITY_OPTIONS, STATUS_OPTIONS } from '@/lib/task';
+import { Status, Tag, Task } from '@/types';
 import {
     DndContext,
     DragEndEvent,
@@ -21,23 +33,26 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { Head } from '@inertiajs/react';
+import { Plus, RotateCw, Search, Tags, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import useSWR from 'swr';
 
-type FilterStatus = '' | 'todo' | 'in_progress' | 'done';
-type FilterPriority = '' | 'high' | 'medium' | 'low';
+/** Select で「すべて」を表す値（Radix の Select は空文字を値にできない） */
+const ALL = 'all';
 
 export default function TaskIndex() {
     // フィルター状態
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
-    const [filterStatus, setFilterStatus] = useState<FilterStatus>('');
-    const [filterTagId, setFilterTagId] = useState('');
-    const [filterPriority, setFilterPriority] = useState<FilterPriority>('');
+    const [filterStatus, setFilterStatus] = useState(ALL);
+    const [filterTagId, setFilterTagId] = useState(ALL);
+    const [filterPriority, setFilterPriority] = useState(ALL);
 
-    // モーダル状態
-    const [showForm, setShowForm] = useState(false);
-    const [showTagManager, setShowTagManager] = useState(false);
+    // ダイアログ状態
+    const [formOpen, setFormOpen] = useState(false);
+    const [tagManagerOpen, setTagManagerOpen] = useState(false);
+    const [confirmingBulkDelete, setConfirmingBulkDelete] = useState(false);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
     const [detailTask, setDetailTask] = useState<Task | null>(null);
 
@@ -56,9 +71,9 @@ export default function TaskIndex() {
     // SWRでタスク取得
     const taskParams = new URLSearchParams();
     if (debouncedSearch) taskParams.set('search', debouncedSearch);
-    if (filterStatus) taskParams.set('status', filterStatus);
-    if (filterTagId) taskParams.set('tag_id', filterTagId);
-    if (filterPriority) taskParams.set('priority', filterPriority);
+    if (filterStatus !== ALL) taskParams.set('status', filterStatus);
+    if (filterTagId !== ALL) taskParams.set('tag_id', filterTagId);
+    if (filterPriority !== ALL) taskParams.set('priority', filterPriority);
 
     const {
         data: tasks,
@@ -73,6 +88,17 @@ export default function TaskIndex() {
         '/api/tags',
         fetcher,
     );
+
+    // 絞り込み中のタグが削除されたら、タグの絞り込みを解除する
+    useEffect(() => {
+        if (
+            tags &&
+            filterTagId !== ALL &&
+            !tags.some((t) => t.id.toString() === filterTagId)
+        ) {
+            setFilterTagId(ALL);
+        }
+    }, [tags, filterTagId]);
 
     // SWRデータが変わったらローカル状態に同期し、表示外になった選択は解除する
     useEffect(() => {
@@ -89,9 +115,9 @@ export default function TaskIndex() {
     const localTasksRef = useRef<Task[]>(localTasks);
     localTasksRef.current = localTasks;
 
-    // D&Dセンサー
+    // D&Dセンサー（クリックと区別するため、少し動かしてからドラッグ開始）
     const sensors = useSensors(
-        useSensor(PointerSensor),
+        useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
         useSensor(KeyboardSensor, {
             coordinateGetter: sortableKeyboardCoordinates,
         }),
@@ -115,7 +141,7 @@ export default function TaskIndex() {
                 await api.tasks.reorder(next.map((t) => t.id));
                 mutateTasks(next, { revalidate: false });
             } catch (e) {
-                alert(getErrorMessage(e));
+                toast.error(getErrorMessage(e));
                 setLocalTasks(prev);
                 mutateTasks();
             }
@@ -123,11 +149,11 @@ export default function TaskIndex() {
         [mutateTasks],
     );
 
-    const handleStatusChange = async (task: Task, status: Task['status']) => {
+    const handleStatusChange = async (task: Task, status: Status) => {
         try {
             await api.tasks.update(task.id, { status });
         } catch (e) {
-            alert(getErrorMessage(e));
+            toast.error(getErrorMessage(e));
         }
         mutateTasks();
     };
@@ -138,142 +164,191 @@ export default function TaskIndex() {
         );
     };
 
+    const allSelected =
+        localTasks.length > 0 && selectedIds.length === localTasks.length;
+
     const handleSelectAll = () => {
-        if (!localTasks) return;
-        if (selectedIds.length === localTasks.length) {
-            setSelectedIds([]);
-        } else {
-            setSelectedIds(localTasks.map((t) => t.id));
-        }
+        setSelectedIds(allSelected ? [] : localTasks.map((t) => t.id));
     };
 
     const handleBulkDelete = async () => {
         if (selectedIds.length === 0) return;
-        if (
-            !confirm(
-                `選択した ${selectedIds.length} 件のタスクを削除しますか？`,
-            )
-        )
-            return;
         try {
             await api.tasks.bulkDelete(selectedIds);
+            toast.success(`${selectedIds.length} 件のタスクを削除しました。`);
             setSelectedIds([]);
         } catch (e) {
-            alert(getErrorMessage(e));
+            toast.error(getErrorMessage(e));
         }
         mutateTasks();
+    };
+
+    const openCreate = () => {
+        setEditingTask(null);
+        setFormOpen(true);
     };
 
     const openEdit = (task: Task) => {
         setEditingTask(task);
         setDetailTask(null);
-        setShowForm(true);
+        setFormOpen(true);
+    };
+
+    const isFiltered =
+        search !== '' ||
+        filterStatus !== ALL ||
+        filterTagId !== ALL ||
+        filterPriority !== ALL;
+
+    const clearFilters = () => {
+        setSearch('');
+        setFilterStatus(ALL);
+        setFilterTagId(ALL);
+        setFilterPriority(ALL);
     };
 
     return (
-        <AuthenticatedLayout
-            header={
-                <h2 className="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
-                    タスク管理
-                </h2>
-            }
-        >
+        <AuthenticatedLayout header="タスク管理">
             <Head title="タスク管理" />
 
             <div className="py-8">
-                <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-4xl space-y-4 px-4 sm:px-6 lg:px-8">
                     {/* ツールバー */}
-                    <div className="mb-4 flex flex-wrap items-center gap-2">
-                        <button
-                            onClick={() => {
-                                setEditingTask(null);
-                                setShowForm(true);
-                            }}
-                            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Button onClick={openCreate}>
+                            <Plus />
+                            タスクを作成
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={() => setTagManagerOpen(true)}
                         >
-                            + タスク作成
-                        </button>
-                        <button
-                            onClick={() => setShowTagManager(true)}
-                            className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-                        >
+                            <Tags />
                             タグ管理
-                        </button>
+                        </Button>
                         {selectedIds.length > 0 && (
-                            <button
-                                onClick={handleBulkDelete}
-                                className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+                            <Button
+                                variant="destructive"
+                                className="ml-auto"
+                                onClick={() => setConfirmingBulkDelete(true)}
                             >
-                                選択削除 ({selectedIds.length})
-                            </button>
+                                <Trash2 />
+                                選択したタスクを削除（{selectedIds.length}）
+                            </Button>
                         )}
                     </div>
 
-                    {/* 検索・フィルター */}
-                    <div className="mb-4 flex flex-wrap gap-2">
-                        <input
-                            type="text"
-                            placeholder="タスクを検索..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                        />
+                    {/* 検索・絞り込み */}
+                    <div className="flex flex-wrap gap-2">
+                        <div className="relative min-w-48 flex-1">
+                            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                type="search"
+                                placeholder="タスクを検索..."
+                                aria-label="タスクを検索"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="bg-background pl-8"
+                            />
+                        </div>
 
-                        <select
+                        <Select
                             value={filterStatus}
-                            onChange={(e) =>
-                                setFilterStatus(e.target.value as FilterStatus)
-                            }
-                            className="min-w-[7.5rem] rounded-md border border-gray-300 px-3 py-2 pr-8 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                            onValueChange={setFilterStatus}
                         >
-                            <option value="">全ステータス</option>
-                            <option value="todo">未着手</option>
-                            <option value="in_progress">進行中</option>
-                            <option value="done">完了</option>
-                        </select>
+                            <SelectTrigger
+                                className="w-auto min-w-36 bg-background"
+                                aria-label="ステータスで絞り込み"
+                            >
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value={ALL}>
+                                    ステータス：すべて
+                                </SelectItem>
+                                {STATUS_OPTIONS.map((opt) => (
+                                    <SelectItem
+                                        key={opt.value}
+                                        value={opt.value}
+                                    >
+                                        {opt.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
 
-                        <select
+                        <Select
                             value={filterPriority}
-                            onChange={(e) =>
-                                setFilterPriority(
-                                    e.target.value as FilterPriority,
-                                )
-                            }
-                            className="min-w-[6.5rem] rounded-md border border-gray-300 px-3 py-2 pr-8 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                            onValueChange={setFilterPriority}
                         >
-                            <option value="">全優先度</option>
-                            <option value="high">高</option>
-                            <option value="medium">中</option>
-                            <option value="low">低</option>
-                        </select>
+                            <SelectTrigger
+                                className="w-auto min-w-36 bg-background"
+                                aria-label="優先度で絞り込み"
+                            >
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value={ALL}>
+                                    優先度：すべて
+                                </SelectItem>
+                                {PRIORITY_OPTIONS.map((opt) => (
+                                    <SelectItem
+                                        key={opt.value}
+                                        value={opt.value}
+                                    >
+                                        優先度 {opt.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
 
-                        <select
+                        <Select
                             value={filterTagId}
-                            onChange={(e) => setFilterTagId(e.target.value)}
-                            className="min-w-[6.5rem] rounded-md border border-gray-300 px-3 py-2 pr-8 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                            onValueChange={setFilterTagId}
                         >
-                            <option value="">全タグ</option>
-                            {tags?.map((tag) => (
-                                <option key={tag.id} value={tag.id}>
-                                    {tag.name}
-                                </option>
-                            ))}
-                        </select>
+                            <SelectTrigger
+                                className="w-auto min-w-36 bg-background"
+                                aria-label="タグで絞り込み"
+                            >
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value={ALL}>
+                                    タグ：すべて
+                                </SelectItem>
+                                {tags?.map((tag) => (
+                                    <SelectItem
+                                        key={tag.id}
+                                        value={tag.id.toString()}
+                                    >
+                                        {tag.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+
+                        {isFiltered && (
+                            <Button variant="ghost" onClick={clearFilters}>
+                                条件をクリア
+                            </Button>
+                        )}
                     </div>
 
                     {/* 全選択 */}
                     {localTasks.length > 0 && (
-                        <div className="mb-2 flex items-center gap-2 text-sm text-gray-500">
-                            <input
-                                type="checkbox"
+                        <div className="flex items-center gap-2 px-3 text-sm text-muted-foreground">
+                            <Checkbox
+                                id="select-all"
                                 checked={
-                                    localTasks.length > 0 &&
-                                    selectedIds.length === localTasks.length
+                                    allSelected
+                                        ? true
+                                        : selectedIds.length > 0
+                                          ? 'indeterminate'
+                                          : false
                                 }
-                                onChange={handleSelectAll}
-                                className="h-4 w-4 rounded border-gray-300 text-indigo-600"
+                                onCheckedChange={handleSelectAll}
                             />
-                            <span>全選択</span>
+                            <label htmlFor="select-all">すべて選択</label>
                             <span className="ml-auto">
                                 {localTasks.length} 件
                             </span>
@@ -282,22 +357,43 @@ export default function TaskIndex() {
 
                     {/* タスクリスト */}
                     {tasksError && !tasks ? (
-                        <div className="rounded-lg border border-red-200 bg-red-50 py-6 text-center text-sm text-red-600">
+                        <div className="flex flex-col items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 py-8 text-sm text-destructive">
                             {getErrorMessage(tasksError)}
-                            <button
+                            <Button
+                                variant="outline"
+                                size="sm"
                                 onClick={() => mutateTasks()}
-                                className="ml-3 font-medium underline"
                             >
+                                <RotateCw />
                                 再読み込み
-                            </button>
+                            </Button>
                         </div>
                     ) : tasksLoading && !tasks ? (
-                        <div className="py-12 text-center text-gray-400">
+                        <div className="py-12 text-center text-sm text-muted-foreground">
                             読み込み中...
                         </div>
                     ) : localTasks.length === 0 ? (
-                        <div className="rounded-lg border border-dashed border-gray-300 py-12 text-center text-gray-400 dark:border-gray-600">
-                            タスクがありません
+                        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed py-12 text-sm text-muted-foreground">
+                            {isFiltered ? (
+                                <>
+                                    条件に一致するタスクがありません
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={clearFilters}
+                                    >
+                                        条件をクリア
+                                    </Button>
+                                </>
+                            ) : (
+                                <>
+                                    タスクがありません
+                                    <Button size="sm" onClick={openCreate}>
+                                        <Plus />
+                                        最初のタスクを作成
+                                    </Button>
+                                </>
+                            )}
                         </div>
                     ) : (
                         <DndContext
@@ -332,37 +428,37 @@ export default function TaskIndex() {
                 </div>
             </div>
 
-            {/* モーダル群 */}
-            {showForm && (
-                <TaskFormModal
-                    task={editingTask}
-                    tags={tags ?? []}
-                    onClose={() => {
-                        setShowForm(false);
-                        setEditingTask(null);
-                    }}
-                    onSaved={() => mutateTasks()}
-                />
-            )}
+            <TaskFormDialog
+                open={formOpen}
+                onOpenChange={setFormOpen}
+                task={editingTask}
+                tags={tags ?? []}
+                onSaved={() => mutateTasks()}
+            />
 
-            {detailTask && (
-                <TaskDetailModal
-                    task={detailTask}
-                    onClose={() => setDetailTask(null)}
-                    onEdit={() => openEdit(detailTask)}
-                />
-            )}
+            <TaskDetailDialog
+                task={detailTask}
+                onOpenChange={(open) => !open && setDetailTask(null)}
+                onEdit={openEdit}
+            />
 
-            {showTagManager && (
-                <TagManagerModal
-                    tags={tags ?? []}
-                    onClose={() => setShowTagManager(false)}
-                    onChanged={() => {
-                        mutateTags();
-                        mutateTasks();
-                    }}
-                />
-            )}
+            <TagManagerDialog
+                open={tagManagerOpen}
+                onOpenChange={setTagManagerOpen}
+                tags={tags ?? []}
+                onChanged={() => {
+                    mutateTags();
+                    mutateTasks();
+                }}
+            />
+
+            <ConfirmDialog
+                open={confirmingBulkDelete}
+                onOpenChange={setConfirmingBulkDelete}
+                title="選択したタスクを削除しますか？"
+                description={`${selectedIds.length} 件のタスクを削除します。`}
+                onConfirm={handleBulkDelete}
+            />
         </AuthenticatedLayout>
     );
 }
