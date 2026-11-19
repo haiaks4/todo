@@ -7,6 +7,7 @@ Laravel 12 + Inertia.js + React (TypeScript) で作ったタスク管理アプ�
 - **認証**：ユーザー登録・ログイン・パスワードリセット・プロフィール編集・アカウント削除（Laravel Breeze ベース）
 - **タスク管理**
   - タスクの作成・編集・削除・複製
+  - 一覧の上の入力欄から、Enter だけでタスクをすばやく追加できる。「資料作成 明日15時 #仕事 !高」のように、期限（今日・明日・金曜・11/25・15時 など）・#タグ（無ければ新しく作る）・!高／!中／!低 も一緒に書ける
   - タスクをタップ（クリック）すると編集画面が開く。横幅が広い画面（1024px 以上）では一覧の横にパネルで表示し、別のタスクをクリックするだけで切り替えられる
   - 保存していない変更があるときは、閉じる前や別のタスクに切り替える前に確認を出す
   - タイトル、説明、期限、優先度（高・中・低）、ステータス（未着手・進行中・完了）、タグを設定できる
@@ -139,17 +140,18 @@ php artisan schedule:list     # 登録されているスケジュールの確認
 ## テスト
 
 ```bash
-php artisan test
+php artisan test   # バックエンド（PHPUnit）
+npm run test:js    # フロントエンド（Node の組み込みテスト。resources/js の *.test.mjs）
 ```
 
-テストは SQLite のメモリ上の DB で実行されます（`phpunit.xml` で設定）。MySQL やビルド済みのフロントエンドは必要ありません。
+バックエンドのテストは SQLite のメモリ上の DB で実行されます（`phpunit.xml` で設定）。MySQL やビルド済みのフロントエンドは必要ありません。フロントエンドのテストは追加のパッケージなしで、Node.js 22 以上の組み込み機能（`node --test` と TypeScript の型の除去）で動きます。
 
 ## CI
 
 GitHub Actions（`.github/workflows/ci.yml`）で、プルリクエストと `main`・`develop` への push のたびに次を実行します。
 
 - バックエンド：`php artisan test`
-- フロントエンド：型チェック（`tsc --noEmit`）、Biome による Lint・フォーマットのチェック（`biome ci`）、ビルド（`vite build`）
+- フロントエンド：型チェック（`tsc --noEmit`）、Biome による Lint・フォーマットのチェック（`biome ci`）、テスト（`npm run test:js`）、ビルド（`vite build`）
 
 ## コード品質
 
