@@ -52,6 +52,13 @@ import { usePersistentState } from '@/hooks/usePersistentState';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { api, fetcher, getErrorMessage } from '@/lib/api';
 import {
+    DUE_BUCKETS,
+    DUE_VIEWS,
+    type DueView,
+    getDueBucket,
+    matchesDueView,
+} from '@/lib/due';
+import {
     isSortKey,
     PRIORITY_OPTIONS,
     SORT_OPTIONS,
@@ -78,6 +85,8 @@ export default function TaskIndex() {
         isSortKey,
     );
     const manualSort = sort === 'manual';
+    // 期限による表示の切り替え（すべて・期限切れ・今日・今週・期限なし）
+    const [dueView, setDueView] = useState<DueView>('all');
 
     // ダイアログ状態
     const [tagManagerOpen, setTagManagerOpen] = useState(false);
@@ -158,6 +167,18 @@ export default function TaskIndex() {
         });
     }, [tasks]);
 
+    // タブで選んだ期限の表示に絞ったタスク
+    const now = new Date();
+    const visibleTasks = localTasks.filter((t) =>
+        matchesDueView(t, dueView, now),
+    );
+    const dueViewCounts = Object.fromEntries(
+        DUE_VIEWS.map((v) => [
+            v.value,
+            localTasks.filter((t) => matchesDueView(t, v.value, now)).length,
+        ]),
+    ) as Record<DueView, number>;
+
     // 最新のローカルリストを D&D ハンドラから参照する
     const localTasksRef = useRef<Task[]>(localTasks);
     localTasksRef.current = localTasks;
@@ -227,10 +248,11 @@ export default function TaskIndex() {
     };
 
     const allSelected =
-        localTasks.length > 0 && selectedIds.length === localTasks.length;
+        visibleTasks.length > 0 &&
+        visibleTasks.every((t) => selectedIds.includes(t.id));
 
     const handleSelectAll = () => {
-        setSelectedIds(allSelected ? [] : localTasks.map((t) => t.id));
+        setSelectedIds(allSelected ? [] : visibleTasks.map((t) => t.id));
     };
 
     /** 削除して「元に戻す」付きの通知を出す（確認ダイアログの代わり） */
@@ -330,14 +352,45 @@ export default function TaskIndex() {
         search !== '' ||
         filterStatus !== ALL ||
         filterTagId !== ALL ||
-        filterPriority !== ALL;
+        filterPriority !== ALL ||
+        dueView !== 'all';
 
     const clearFilters = () => {
+        setDueView('all');
         setSearch('');
         setFilterStatus(ALL);
         setFilterTagId(ALL);
         setFilterPriority(ALL);
     };
+
+    // 期限が近い順のときは、期限の区分ごとに見出しを付けて表示する
+    const groups =
+        sort === 'due_date'
+            ? DUE_BUCKETS.map((bucket) => ({
+                  ...bucket,
+                  tasks: visibleTasks.filter(
+                      (t) => getDueBucket(t, now) === bucket.key,
+                  ),
+              })).filter((g) => g.tasks.length > 0)
+            : null;
+
+    const renderTask = (task: Task) => (
+        <TaskItem
+            key={task.id}
+            task={task}
+            selected={selectedIds.includes(task.id)}
+            selecting={selecting}
+            reordering={reordering}
+            draggable={manualSort}
+            onToggleSelect={handleToggleSelect}
+            onLongPress={handleLongPress}
+            active={editor.open && editor.task?.id === task.id}
+            onOpen={openEdit}
+            onDelete={handleDelete}
+            onDuplicated={() => mutateTasks()}
+            onStatusChange={handleStatusChange}
+        />
+    );
 
     return (
         <AuthenticatedLayout header="タスク管理">
@@ -532,8 +585,53 @@ export default function TaskIndex() {
                             )}
                         </div>
 
-                        {/* 全選択 */}
+                        {/* 期限による表示の切り替え */}
                         {localTasks.length > 0 && (
+                            <div
+                                role="tablist"
+                                aria-label="期限で表示を切り替え"
+                                className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0"
+                            >
+                                {DUE_VIEWS.map((v) => (
+                                    <Button
+                                        key={v.value}
+                                        role="tab"
+                                        aria-selected={dueView === v.value}
+                                        size="sm"
+                                        variant={
+                                            dueView === v.value
+                                                ? 'default'
+                                                : 'outline'
+                                        }
+                                        className={cn(
+                                            'shrink-0 rounded-full',
+                                            dueView !== v.value &&
+                                                'bg-background',
+                                        )}
+                                        onClick={() => setDueView(v.value)}
+                                    >
+                                        {v.label}
+                                        <span
+                                            className={cn(
+                                                'tabular-nums',
+                                                dueView === v.value
+                                                    ? 'opacity-80'
+                                                    : 'text-muted-foreground',
+                                                v.value === 'overdue' &&
+                                                    dueViewCounts.overdue > 0 &&
+                                                    dueView !== v.value &&
+                                                    'font-medium text-destructive',
+                                            )}
+                                        >
+                                            {dueViewCounts[v.value]}
+                                        </span>
+                                    </Button>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* 全選択 */}
+                        {visibleTasks.length > 0 && (
                             <div className="hidden items-center gap-2 px-3 text-sm text-muted-foreground sm:flex">
                                 <Checkbox
                                     id="select-all"
@@ -548,7 +646,7 @@ export default function TaskIndex() {
                                 />
                                 <label htmlFor="select-all">すべて選択</label>
                                 <span className="ml-auto">
-                                    {localTasks.length} 件
+                                    {visibleTasks.length} 件
                                 </span>
                             </div>
                         )}
@@ -570,7 +668,7 @@ export default function TaskIndex() {
                             <div className="py-12 text-center text-sm text-muted-foreground">
                                 読み込み中...
                             </div>
-                        ) : localTasks.length === 0 ? (
+                        ) : visibleTasks.length === 0 ? (
                             <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed py-12 text-sm text-muted-foreground">
                                 {isFiltered ? (
                                     <>
@@ -600,39 +698,42 @@ export default function TaskIndex() {
                                 onDragEnd={handleDragEnd}
                             >
                                 <SortableContext
-                                    items={localTasks.map((t) => t.id)}
+                                    items={visibleTasks.map((t) => t.id)}
                                     strategy={verticalListSortingStrategy}
                                 >
-                                    <div className="space-y-2">
-                                        {localTasks.map((task) => (
-                                            <TaskItem
-                                                key={task.id}
-                                                task={task}
-                                                selected={selectedIds.includes(
-                                                    task.id,
-                                                )}
-                                                selecting={selecting}
-                                                reordering={reordering}
-                                                draggable={manualSort}
-                                                onToggleSelect={
-                                                    handleToggleSelect
-                                                }
-                                                onLongPress={handleLongPress}
-                                                active={
-                                                    editor.open &&
-                                                    editor.task?.id === task.id
-                                                }
-                                                onOpen={openEdit}
-                                                onDelete={handleDelete}
-                                                onDuplicated={() =>
-                                                    mutateTasks()
-                                                }
-                                                onStatusChange={
-                                                    handleStatusChange
-                                                }
-                                            />
-                                        ))}
-                                    </div>
+                                    {groups ? (
+                                        <div className="space-y-5">
+                                            {groups.map((group) => (
+                                                <section
+                                                    key={group.key}
+                                                    aria-label={group.label}
+                                                    className="space-y-2"
+                                                >
+                                                    <h3
+                                                        className={cn(
+                                                            'flex items-center gap-2 px-1 text-sm font-medium',
+                                                            group.key ===
+                                                                'overdue'
+                                                                ? 'text-destructive'
+                                                                : 'text-muted-foreground',
+                                                        )}
+                                                    >
+                                                        {group.label}
+                                                        <span className="text-xs font-normal tabular-nums">
+                                                            {group.tasks.length}
+                                                        </span>
+                                                    </h3>
+                                                    {group.tasks.map(
+                                                        renderTask,
+                                                    )}
+                                                </section>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            {visibleTasks.map(renderTask)}
+                                        </div>
+                                    )}
                                 </SortableContext>
                                 <p className="pt-2 text-center text-xs text-muted-foreground sm:hidden">
                                     {reordering

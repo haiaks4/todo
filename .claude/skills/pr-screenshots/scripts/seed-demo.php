@@ -22,7 +22,8 @@ if ($user->tasks()->doesntExist()) {
         ['牛乳と卵を買う', 'todo', null, $home, null],
         ['週次ミーティングの議事録を共有', 'done', 'low', $work, now()->subDays(2)->setTime(15, 0)],
         ['エアコンのフィルター掃除', 'todo', 'low', $home, now()->addDays(5)->setTime(9, 0)],
-        ['経費精算', 'todo', 'medium', null, now()->addDays(3)->setTime(17, 30)],
+        ['経費精算', 'todo', 'medium', null, now()->setTime(23, 30)],
+        ['歯医者の予約', 'todo', null, $home, now()->addDays(3)->setTime(17, 30)],
     ];
     foreach ($rows as $i => [$title, $status, $priority, $tag, $due]) {
         Task::create([
