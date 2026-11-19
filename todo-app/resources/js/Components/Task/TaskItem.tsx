@@ -54,8 +54,10 @@ interface Props {
     onToggleSelect: (id: number) => void;
     /** 長押しで選択モードに入る */
     onLongPress: (id: number) => void;
-    onDetail: (task: Task) => void;
-    onEdit: (task: Task) => void;
+    /** 編集画面で開いているタスク */
+    active: boolean;
+    /** タップで編集画面を開く */
+    onOpen: (task: Task) => void;
     onDelete: (task: Task) => void;
     onDuplicated: () => void;
     onStatusChange: (task: Task, status: Status) => void;
@@ -73,8 +75,8 @@ export default function TaskItem({
     reordering,
     onToggleSelect,
     onLongPress,
-    onDetail,
-    onEdit,
+    active,
+    onOpen,
     onDelete,
     onDuplicated,
     onStatusChange,
@@ -189,7 +191,7 @@ export default function TaskItem({
 
     const handleContentClick = () => {
         if (selecting) onToggleSelect(task.id);
-        else onDetail(task);
+        else onOpen(task);
     };
 
     const handleDuplicate = async () => {
@@ -279,6 +281,7 @@ export default function TaskItem({
                     'relative flex touch-pan-y items-center gap-2 rounded-lg border bg-card py-2 pr-1 pl-2 shadow-xs select-none [-webkit-touch-callout:none] sm:gap-3 sm:pr-2 sm:pl-3 sm:select-auto',
                     overdue && 'border-destructive/50',
                     selected && 'border-primary bg-primary/5',
+                    active && 'border-primary ring-2 ring-primary/20',
                 )}
             >
                 {/* ドラッグハンドル（PC は常に、スマホは並び替えモードのときだけ表示） */}
@@ -340,7 +343,7 @@ export default function TaskItem({
                     </span>
                 </button>
 
-                {/* タスク情報（タップで詳細。選択モード中は選択の切り替え） */}
+                {/* タスク情報（タップで編集画面を開く。選択モード中は選択の切り替え） */}
                 <button
                     type="button"
                     className="min-w-0 flex-1 py-1 text-left"
@@ -446,7 +449,7 @@ export default function TaskItem({
                                 </DropdownMenuRadioGroup>
                                 <DropdownMenuSeparator />
                             </DropdownMenuGroup>
-                            <DropdownMenuItem onSelect={() => onEdit(task)}>
+                            <DropdownMenuItem onSelect={() => onOpen(task)}>
                                 <Pencil />
                                 編集
                             </DropdownMenuItem>

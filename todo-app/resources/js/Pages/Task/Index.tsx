@@ -29,9 +29,12 @@ import {
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
+import ConfirmDialog from '@/Components/ConfirmDialog';
 import TagManagerDialog from '@/Components/Tag/TagManagerDialog';
-import TaskDetailDialog from '@/Components/Task/TaskDetailDialog';
-import TaskFormDialog from '@/Components/Task/TaskFormDialog';
+import {
+    TaskEditorDialog,
+    TaskEditorPanel,
+} from '@/Components/Task/TaskEditor';
 import TaskItem from '@/Components/Task/TaskItem';
 import { Button } from '@/Components/ui/button';
 import { Checkbox } from '@/Components/ui/checkbox';
@@ -43,6 +46,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/Components/ui/select';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { api, fetcher, getErrorMessage } from '@/lib/api';
 import { PRIORITY_OPTIONS, STATUS_OPTIONS } from '@/lib/task';
@@ -61,10 +65,22 @@ export default function TaskIndex() {
     const [filterPriority, setFilterPriority] = useState(ALL);
 
     // ダイアログ状態
-    const [formOpen, setFormOpen] = useState(false);
     const [tagManagerOpen, setTagManagerOpen] = useState(false);
-    const [editingTask, setEditingTask] = useState<Task | null>(null);
-    const [detailTask, setDetailTask] = useState<Task | null>(null);
+
+    // 作成・編集画面（key は開くたびにフォームを初期化するために使う）
+    const [editor, setEditor] = useState<{
+        open: boolean;
+        task: Task | null;
+        key: number;
+    }>({ open: false, task: null, key: 0 });
+    const [editorDirty, setEditorDirty] = useState(false);
+    // 未保存の変更を破棄してよいか確認中の操作
+    const [pendingAction, setPendingAction] = useState<(() => void) | null>(
+        null,
+    );
+    // 横幅が広い画面では、作成・編集画面を一覧の横に並べる
+    const wide = useMediaQuery('(min-width: 1024px)');
+    const panelOpen = wide && editor.open;
 
     // 一括選択（スマホでは長押しか「選択」ボタンで選択モードに入る）
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -256,15 +272,42 @@ export default function TaskIndex() {
         mutateTasks();
     };
 
-    const openCreate = () => {
-        setEditingTask(null);
-        setFormOpen(true);
+    /** 未保存の変更があれば確認してから実行する */
+    const guardUnsaved = (action: () => void) => {
+        if (editor.open && editorDirty) setPendingAction(() => action);
+        else action();
     };
 
+    const showEditor = (task: Task | null) => {
+        setEditorDirty(false);
+        setEditor((prev) => ({ open: true, task, key: prev.key + 1 }));
+    };
+
+    const closeEditor = () => {
+        setEditorDirty(false);
+        setEditor((prev) => ({ ...prev, open: false }));
+    };
+
+    const openCreate = () => guardUnsaved(() => showEditor(null));
     const openEdit = (task: Task) => {
-        setEditingTask(task);
-        setDetailTask(null);
-        setFormOpen(true);
+        if (editor.open && editor.task?.id === task.id) return;
+        guardUnsaved(() => showEditor(task));
+    };
+    const requestCloseEditor = () => guardUnsaved(closeEditor);
+
+    const editorProps = {
+        task: editor.task,
+        tags: tags ?? [],
+        onSaved: () => {
+            closeEditor();
+            mutateTasks();
+        },
+        onDelete: (task: Task) => {
+            closeEditor();
+            handleDelete(task);
+        },
+        onDirtyChange: setEditorDirty,
+        onRequestClose: requestCloseEditor,
     };
 
     const isFiltered =
@@ -285,261 +328,298 @@ export default function TaskIndex() {
             <Head title="タスク管理" />
 
             <div className={cn('pt-8 pb-28', !selecting && 'sm:pb-8')}>
-                <div className="mx-auto max-w-4xl space-y-4 px-4 sm:px-6 lg:px-8">
-                    {/* ツールバー */}
-                    <div className="flex flex-wrap items-center gap-2">
-                        <Button onClick={openCreate} className="hidden sm:flex">
-                            <Plus />
-                            タスクを作成
-                        </Button>
-                        <Button
-                            variant="outline"
-                            onClick={() => setTagManagerOpen(true)}
-                        >
-                            <Tags />
-                            タグ管理
-                        </Button>
-                        {localTasks.length > 0 && (
-                            <div className="ml-auto flex gap-2 sm:hidden">
-                                <Button
-                                    variant={reordering ? 'default' : 'outline'}
-                                    onClick={() => {
-                                        exitSelection();
-                                        setReordering((v) => !v);
-                                    }}
-                                    aria-pressed={reordering}
-                                >
-                                    {reordering ? <Check /> : <ArrowUpDown />}
-                                    {reordering ? '完了' : '並び替え'}
-                                </Button>
-                                {!reordering && (
-                                    <Button
-                                        variant="outline"
-                                        onClick={() =>
-                                            selecting
-                                                ? exitSelection()
-                                                : setSelectModeOn(true)
-                                        }
-                                        aria-pressed={selecting}
-                                    >
-                                        <ListChecks />
-                                        選択
-                                    </Button>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* 検索・絞り込み */}
-                    <div className="flex flex-wrap gap-2">
-                        <div className="relative min-w-48 flex-1">
-                            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                                type="search"
-                                placeholder="タスクを検索..."
-                                aria-label="タスクを検索"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="bg-background pl-8"
-                            />
-                        </div>
-
-                        <Select
-                            value={filterStatus}
-                            onValueChange={setFilterStatus}
-                        >
-                            <SelectTrigger
-                                className="w-auto min-w-36 bg-background"
-                                aria-label="ステータスで絞り込み"
-                            >
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value={ALL}>
-                                    ステータス：すべて
-                                </SelectItem>
-                                {STATUS_OPTIONS.map((opt) => (
-                                    <SelectItem
-                                        key={opt.value}
-                                        value={opt.value}
-                                    >
-                                        {opt.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-
-                        <Select
-                            value={filterPriority}
-                            onValueChange={setFilterPriority}
-                        >
-                            <SelectTrigger
-                                className="w-auto min-w-36 bg-background"
-                                aria-label="優先度で絞り込み"
-                            >
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value={ALL}>
-                                    優先度：すべて
-                                </SelectItem>
-                                {PRIORITY_OPTIONS.map((opt) => (
-                                    <SelectItem
-                                        key={opt.value}
-                                        value={opt.value}
-                                    >
-                                        優先度 {opt.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-
-                        <Select
-                            value={filterTagId}
-                            onValueChange={setFilterTagId}
-                        >
-                            <SelectTrigger
-                                className="w-auto min-w-36 bg-background"
-                                aria-label="タグで絞り込み"
-                            >
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value={ALL}>
-                                    タグ：すべて
-                                </SelectItem>
-                                {tags?.map((tag) => (
-                                    <SelectItem
-                                        key={tag.id}
-                                        value={tag.id.toString()}
-                                    >
-                                        {tag.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-
-                        {isFiltered && (
-                            <Button variant="ghost" onClick={clearFilters}>
-                                条件をクリア
-                            </Button>
-                        )}
-                    </div>
-
-                    {/* 全選択 */}
-                    {localTasks.length > 0 && (
-                        <div className="hidden items-center gap-2 px-3 text-sm text-muted-foreground sm:flex">
-                            <Checkbox
-                                id="select-all"
-                                checked={
-                                    allSelected
-                                        ? true
-                                        : selectedIds.length > 0
-                                          ? 'indeterminate'
-                                          : false
-                                }
-                                onCheckedChange={handleSelectAll}
-                            />
-                            <label htmlFor="select-all">すべて選択</label>
-                            <span className="ml-auto">
-                                {localTasks.length} 件
-                            </span>
-                        </div>
+                <div
+                    className={cn(
+                        'mx-auto px-4 sm:px-6 lg:px-8',
+                        panelOpen
+                            ? 'grid max-w-7xl grid-cols-[minmax(0,1fr)_26rem] items-start gap-6'
+                            : 'max-w-4xl',
                     )}
-
-                    {/* タスクリスト */}
-                    {tasksError && !tasks ? (
-                        <div className="flex flex-col items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 py-8 text-sm text-destructive">
-                            {getErrorMessage(tasksError)}
+                >
+                    <div className="min-w-0 space-y-4">
+                        {/* ツールバー */}
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Button
+                                onClick={openCreate}
+                                className="hidden sm:flex"
+                            >
+                                <Plus />
+                                タスクを作成
+                            </Button>
                             <Button
                                 variant="outline"
-                                size="sm"
-                                onClick={() => mutateTasks()}
+                                onClick={() => setTagManagerOpen(true)}
                             >
-                                <RotateCw />
-                                再読み込み
+                                <Tags />
+                                タグ管理
                             </Button>
-                        </div>
-                    ) : tasksLoading && !tasks ? (
-                        <div className="py-12 text-center text-sm text-muted-foreground">
-                            読み込み中...
-                        </div>
-                    ) : localTasks.length === 0 ? (
-                        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed py-12 text-sm text-muted-foreground">
-                            {isFiltered ? (
-                                <>
-                                    条件に一致するタスクがありません
+                            {localTasks.length > 0 && (
+                                <div className="ml-auto flex gap-2 sm:hidden">
                                     <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={clearFilters}
+                                        variant={
+                                            reordering ? 'default' : 'outline'
+                                        }
+                                        onClick={() => {
+                                            exitSelection();
+                                            setReordering((v) => !v);
+                                        }}
+                                        aria-pressed={reordering}
                                     >
-                                        条件をクリア
+                                        {reordering ? (
+                                            <Check />
+                                        ) : (
+                                            <ArrowUpDown />
+                                        )}
+                                        {reordering ? '完了' : '並び替え'}
                                     </Button>
-                                </>
-                            ) : (
-                                <>
-                                    タスクがありません
-                                    <Button size="sm" onClick={openCreate}>
-                                        <Plus />
-                                        最初のタスクを作成
-                                    </Button>
-                                </>
+                                    {!reordering && (
+                                        <Button
+                                            variant="outline"
+                                            onClick={() =>
+                                                selecting
+                                                    ? exitSelection()
+                                                    : setSelectModeOn(true)
+                                            }
+                                            aria-pressed={selecting}
+                                        >
+                                            <ListChecks />
+                                            選択
+                                        </Button>
+                                    )}
+                                </div>
                             )}
                         </div>
-                    ) : (
-                        <DndContext
-                            sensors={sensors}
-                            collisionDetection={closestCenter}
-                            onDragEnd={handleDragEnd}
-                        >
-                            <SortableContext
-                                items={localTasks.map((t) => t.id)}
-                                strategy={verticalListSortingStrategy}
+
+                        {/* 検索・絞り込み */}
+                        <div className="flex flex-wrap gap-2">
+                            <div className="relative min-w-48 flex-1">
+                                <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+                                <Input
+                                    type="search"
+                                    placeholder="タスクを検索..."
+                                    aria-label="タスクを検索"
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    className="bg-background pl-8"
+                                />
+                            </div>
+
+                            <Select
+                                value={filterStatus}
+                                onValueChange={setFilterStatus}
                             >
-                                <div className="space-y-2">
-                                    {localTasks.map((task) => (
-                                        <TaskItem
-                                            key={task.id}
-                                            task={task}
-                                            selected={selectedIds.includes(
-                                                task.id,
-                                            )}
-                                            selecting={selecting}
-                                            reordering={reordering}
-                                            onToggleSelect={handleToggleSelect}
-                                            onLongPress={handleLongPress}
-                                            onDetail={setDetailTask}
-                                            onEdit={openEdit}
-                                            onDelete={handleDelete}
-                                            onDuplicated={() => mutateTasks()}
-                                            onStatusChange={handleStatusChange}
-                                        />
+                                <SelectTrigger
+                                    className="w-auto min-w-36 bg-background"
+                                    aria-label="ステータスで絞り込み"
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value={ALL}>
+                                        ステータス：すべて
+                                    </SelectItem>
+                                    {STATUS_OPTIONS.map((opt) => (
+                                        <SelectItem
+                                            key={opt.value}
+                                            value={opt.value}
+                                        >
+                                            {opt.label}
+                                        </SelectItem>
                                     ))}
-                                </div>
-                            </SortableContext>
-                            <p className="pt-2 text-center text-xs text-muted-foreground sm:hidden">
-                                {reordering
-                                    ? '左端のつまみをドラッグして並び替えます'
-                                    : '右にスワイプで完了、左にスワイプで削除、長押しで選択できます'}
-                            </p>
-                        </DndContext>
+                                </SelectContent>
+                            </Select>
+
+                            <Select
+                                value={filterPriority}
+                                onValueChange={setFilterPriority}
+                            >
+                                <SelectTrigger
+                                    className="w-auto min-w-36 bg-background"
+                                    aria-label="優先度で絞り込み"
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value={ALL}>
+                                        優先度：すべて
+                                    </SelectItem>
+                                    {PRIORITY_OPTIONS.map((opt) => (
+                                        <SelectItem
+                                            key={opt.value}
+                                            value={opt.value}
+                                        >
+                                            優先度 {opt.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <Select
+                                value={filterTagId}
+                                onValueChange={setFilterTagId}
+                            >
+                                <SelectTrigger
+                                    className="w-auto min-w-36 bg-background"
+                                    aria-label="タグで絞り込み"
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value={ALL}>
+                                        タグ：すべて
+                                    </SelectItem>
+                                    {tags?.map((tag) => (
+                                        <SelectItem
+                                            key={tag.id}
+                                            value={tag.id.toString()}
+                                        >
+                                            {tag.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            {isFiltered && (
+                                <Button variant="ghost" onClick={clearFilters}>
+                                    条件をクリア
+                                </Button>
+                            )}
+                        </div>
+
+                        {/* 全選択 */}
+                        {localTasks.length > 0 && (
+                            <div className="hidden items-center gap-2 px-3 text-sm text-muted-foreground sm:flex">
+                                <Checkbox
+                                    id="select-all"
+                                    checked={
+                                        allSelected
+                                            ? true
+                                            : selectedIds.length > 0
+                                              ? 'indeterminate'
+                                              : false
+                                    }
+                                    onCheckedChange={handleSelectAll}
+                                />
+                                <label htmlFor="select-all">すべて選択</label>
+                                <span className="ml-auto">
+                                    {localTasks.length} 件
+                                </span>
+                            </div>
+                        )}
+
+                        {/* タスクリスト */}
+                        {tasksError && !tasks ? (
+                            <div className="flex flex-col items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 py-8 text-sm text-destructive">
+                                {getErrorMessage(tasksError)}
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => mutateTasks()}
+                                >
+                                    <RotateCw />
+                                    再読み込み
+                                </Button>
+                            </div>
+                        ) : tasksLoading && !tasks ? (
+                            <div className="py-12 text-center text-sm text-muted-foreground">
+                                読み込み中...
+                            </div>
+                        ) : localTasks.length === 0 ? (
+                            <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed py-12 text-sm text-muted-foreground">
+                                {isFiltered ? (
+                                    <>
+                                        条件に一致するタスクがありません
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={clearFilters}
+                                        >
+                                            条件をクリア
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <>
+                                        タスクがありません
+                                        <Button size="sm" onClick={openCreate}>
+                                            <Plus />
+                                            最初のタスクを作成
+                                        </Button>
+                                    </>
+                                )}
+                            </div>
+                        ) : (
+                            <DndContext
+                                sensors={sensors}
+                                collisionDetection={closestCenter}
+                                onDragEnd={handleDragEnd}
+                            >
+                                <SortableContext
+                                    items={localTasks.map((t) => t.id)}
+                                    strategy={verticalListSortingStrategy}
+                                >
+                                    <div className="space-y-2">
+                                        {localTasks.map((task) => (
+                                            <TaskItem
+                                                key={task.id}
+                                                task={task}
+                                                selected={selectedIds.includes(
+                                                    task.id,
+                                                )}
+                                                selecting={selecting}
+                                                reordering={reordering}
+                                                onToggleSelect={
+                                                    handleToggleSelect
+                                                }
+                                                onLongPress={handleLongPress}
+                                                active={
+                                                    editor.open &&
+                                                    editor.task?.id === task.id
+                                                }
+                                                onOpen={openEdit}
+                                                onDelete={handleDelete}
+                                                onDuplicated={() =>
+                                                    mutateTasks()
+                                                }
+                                                onStatusChange={
+                                                    handleStatusChange
+                                                }
+                                            />
+                                        ))}
+                                    </div>
+                                </SortableContext>
+                                <p className="pt-2 text-center text-xs text-muted-foreground sm:hidden">
+                                    {reordering
+                                        ? '左端のつまみをドラッグして並び替えます'
+                                        : '右にスワイプで完了、左にスワイプで削除、長押しで選択できます'}
+                                </p>
+                            </DndContext>
+                        )}
+                    </div>
+                    {panelOpen && (
+                        <TaskEditorPanel key={editor.key} {...editorProps} />
                     )}
                 </div>
             </div>
 
-            <TaskFormDialog
-                open={formOpen}
-                onOpenChange={setFormOpen}
-                task={editingTask}
-                tags={tags ?? []}
-                onSaved={() => mutateTasks()}
-            />
+            {!wide && (
+                <TaskEditorDialog
+                    key={editor.key}
+                    open={editor.open}
+                    {...editorProps}
+                />
+            )}
 
-            <TaskDetailDialog
-                task={detailTask}
-                onOpenChange={(open) => !open && setDetailTask(null)}
-                onEdit={openEdit}
+            <ConfirmDialog
+                open={pendingAction !== null}
+                onOpenChange={(next) => !next && setPendingAction(null)}
+                title="変更を破棄しますか？"
+                description="保存していない変更は失われます。"
+                confirmLabel="破棄する"
+                onConfirm={() => {
+                    const action = pendingAction;
+                    setPendingAction(null);
+                    action?.();
+                }}
             />
 
             <TagManagerDialog
