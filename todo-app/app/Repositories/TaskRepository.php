@@ -39,11 +39,6 @@ class TaskRepository implements TaskRepositoryInterface
         return $query->get();
     }
 
-    public function findById(int $id): Task
-    {
-        return Task::findOrFail($id);
-    }
-
     public function create(User $user, array $data): Task
     {
         return DB::transaction(function () use ($user, $data) {
@@ -100,7 +95,7 @@ class TaskRepository implements TaskRepositoryInterface
         });
     }
 
-    public function maxOrder(User $user): int
+    private function maxOrder(User $user): int
     {
         return (int) $user->tasks()->max('order');
     }
