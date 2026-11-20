@@ -38,12 +38,17 @@ import ProjectSwitcher, {
     INBOX,
 } from '@/Components/Project/ProjectSwitcher';
 import TagManagerDialog from '@/Components/Tag/TagManagerDialog';
+import KanbanBoard from '@/Components/Task/KanbanBoard';
 import QuickAddInput from '@/Components/Task/QuickAddInput';
 import {
     TaskEditorDialog,
     TaskEditorPanel,
 } from '@/Components/Task/TaskEditor';
 import TaskItem from '@/Components/Task/TaskItem';
+import ViewSwitcher, {
+    isTaskView,
+    type TaskView,
+} from '@/Components/Task/ViewSwitcher';
 import { Button } from '@/Components/ui/button';
 import { Checkbox } from '@/Components/ui/checkbox';
 import { Input } from '@/Components/ui/input';
@@ -93,6 +98,13 @@ export default function TaskIndex() {
         isSortKey,
     );
     const manualSort = sort === 'manual';
+    // 表示（リスト・かんばん）。端末ごとに覚えておく
+    const [view, setView] = usePersistentState<TaskView>(
+        'tasks.view',
+        'list',
+        isTaskView,
+    );
+    const isList = view === 'list';
     // 期限による表示の切り替え（すべて・期限切れ・今日・今週・期限なし）
     const [dueView, setDueView] = useState<DueView>('all');
 
@@ -516,20 +528,35 @@ export default function TaskIndex() {
                         'mx-auto px-4 sm:px-6 lg:px-8',
                         panelOpen
                             ? 'grid max-w-7xl grid-cols-[minmax(0,1fr)_26rem] items-start gap-6'
-                            : 'max-w-4xl',
+                            : isList
+                              ? 'max-w-4xl'
+                              : 'max-w-6xl',
                     )}
                 >
                     <div className="min-w-0 space-y-4">
-                        {/* プロジェクトの切り替え */}
-                        <ProjectSwitcher
-                            value={projectId}
-                            onChange={(value) => {
-                                exitSelection();
-                                setProjectId(value);
-                            }}
-                            projects={projects ?? []}
-                            onManage={() => setProjectManagerOpen(true)}
-                        />
+                        {/* プロジェクトと表示の切り替え */}
+                        <div className="flex items-center justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                                <ProjectSwitcher
+                                    value={projectId}
+                                    onChange={(value) => {
+                                        exitSelection();
+                                        setProjectId(value);
+                                    }}
+                                    projects={projects ?? []}
+                                    onManage={() => setProjectManagerOpen(true)}
+                                />
+                            </div>
+                            <ViewSwitcher
+                                value={view}
+                                views={['list', 'board']}
+                                onChange={(next) => {
+                                    exitSelection();
+                                    setReordering(false);
+                                    setView(next);
+                                }}
+                            />
+                        </div>
 
                         {/* ツールバー */}
                         <div className="flex flex-wrap items-center gap-2">
@@ -558,7 +585,7 @@ export default function TaskIndex() {
                                     </span>
                                 </Link>
                             </Button>
-                            {localTasks.length > 0 && (
+                            {isList && localTasks.length > 0 && (
                                 <div className="ml-auto flex gap-2 sm:hidden">
                                     {manualSort && (
                                         <Button
@@ -778,7 +805,7 @@ export default function TaskIndex() {
                         )}
 
                         {/* 全選択 */}
-                        {visibleTasks.length > 0 && (
+                        {isList && visibleTasks.length > 0 && (
                             <div className="hidden items-center gap-2 px-3 text-sm text-muted-foreground sm:flex">
                                 <Checkbox
                                     id="select-all"
@@ -817,6 +844,18 @@ export default function TaskIndex() {
                             <div className="py-12 text-center text-sm text-muted-foreground">
                                 読み込み中...
                             </div>
+                        ) : view === 'board' ? (
+                            <KanbanBoard
+                                tasks={visibleTasks}
+                                onOpen={openEdit}
+                                onStatusChange={handleStatusChange}
+                                activeTaskId={
+                                    editor.open
+                                        ? (editor.task?.id ?? null)
+                                        : null
+                                }
+                                showProject={projectId === ALL_PROJECTS}
+                            />
                         ) : visibleTasks.length === 0 ? (
                             <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed py-12 text-sm text-muted-foreground">
                                 {isFiltered ? (
