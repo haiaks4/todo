@@ -5,6 +5,7 @@ import {
     Check,
     Copy,
     GripVertical,
+    ListChecks,
     MoreHorizontal,
     Pencil,
     RotateCcw,
@@ -95,6 +96,8 @@ export default function TaskItem({
 
     const done = task.status === 'done';
     const overdue = isOverdue(task);
+    const subtaskTotal = task.subtasks?.length ?? 0;
+    const subtaskDone = task.subtasks?.filter((s) => s.is_done).length ?? 0;
     const toggleDone = () => onStatusChange(task, done ? 'todo' : 'done');
 
     // ---- スワイプ（右：完了の切り替え、左：削除）と長押し（選択モード） ----
@@ -363,7 +366,10 @@ export default function TaskItem({
                     >
                         {task.title}
                     </span>
-                    {(task.priority || task.tag || task.due_date) && (
+                    {(task.priority ||
+                        task.tag ||
+                        task.due_date ||
+                        subtaskTotal > 0) && (
                         <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
                             {task.priority && (
                                 <Badge
@@ -376,6 +382,28 @@ export default function TaskItem({
                             )}
                             {task.tag && (
                                 <Badge variant="outline">{task.tag.name}</Badge>
+                            )}
+                            {subtaskTotal > 0 && (
+                                <span
+                                    className={cn(
+                                        'inline-flex items-center gap-1 text-xs tabular-nums',
+                                        subtaskDone === subtaskTotal
+                                            ? 'text-emerald-600 dark:text-emerald-400'
+                                            : 'text-muted-foreground',
+                                    )}
+                                >
+                                    <ListChecks
+                                        className="size-3.5"
+                                        aria-hidden
+                                    />
+                                    <span aria-hidden>
+                                        {subtaskDone}/{subtaskTotal}
+                                    </span>
+                                    <span className="sr-only">
+                                        チェックリスト {subtaskTotal} 件中{' '}
+                                        {subtaskDone} 件完了
+                                    </span>
+                                </span>
                             )}
                             {task.due_date && (
                                 <span

@@ -39,4 +39,10 @@ class Task extends Model
     {
         return $this->belongsTo(Tag::class);
     }
+
+    /** チェック項目（並び順どおり） */
+    public function subtasks()
+    {
+        return $this->hasMany(Subtask::class)->orderBy('order')->orderBy('id');
+    }
 }

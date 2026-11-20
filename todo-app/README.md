@@ -7,6 +7,7 @@ Laravel 12 + Inertia.js + React (TypeScript) で作ったタスク管理アプ�
 - **認証**：ユーザー登録・ログイン・パスワードリセット・プロフィール編集・アカウント削除（Laravel Breeze ベース）
 - **タスク管理**
   - タスクの作成・編集・削除・複製
+  - タスクの中にチェックリスト（サブタスク）を作れる。編集画面で追加・チェック・名前の変更・削除ができ（その場で保存）、一覧には「1/3」のように進み具合を表示する。タスクを複製するとチェックを外した状態で複製される
   - 一覧の上の入力欄から、Enter だけでタスクをすばやく追加できる。「資料作成 明日15時 #仕事 !高」のように、期限（今日・明日・金曜・11/25・15時 など）・#タグ（無ければ新しく作る）・!高／!中／!低 も一緒に書ける
   - タスクをタップ（クリック）すると編集画面が開く。横幅が広い画面（1024px 以上）では一覧の横にパネルで表示し、別のタスクをクリックするだけで切り替えられる
   - 保存していない変更があるときは、閉じる前や別のタスクに切り替える前に確認を出す
@@ -207,11 +208,11 @@ npm run check                              # 追加したファイルを Biome �
 todo-app/
 ├── app/
 │   ├── Http/
-│   │   ├── Controllers/        # TaskController, TagController, ProfileController
+│   │   ├── Controllers/        # TaskController, SubtaskController, TagController, ProfileController
 │   │   └── Requests/           # 入力チェック（Task/*, Tag/*）
 │   ├── Jobs/                   # SendTaskReminderJob（リマインド送信）
 │   ├── Mail/                   # TaskReminderMail
-│   ├── Models/                 # User, Task, Tag（いずれも論理削除）
+│   ├── Models/                 # User, Task, Tag（いずれも論理削除）, Subtask（タスクのチェック項目）
 │   ├── Policies/               # TaskPolicy, TagPolicy（本人のデータのみ操作可）
 │   └── Repositories/           # DB 操作をまとめたリポジトリ（インターフェースは Contracts/）
 ├── bootstrap/app.php           # ルーティングと、JSON API 用の例外ハンドリング
@@ -257,6 +258,9 @@ todo-app/
 | POST | `/api/tasks/bulk-status` | ステータスの一括変更（`ids`、`status`） |
 | POST | `/api/tasks/restore` | 削除したタスクを元の位置に戻す（`ids`） |
 | POST | `/api/tasks/reorder` | 並び替え（`ids`: 新しい並び順のタスク ID の配列） |
+| POST | `/api/tasks/{task}/subtasks` | チェックリストに項目を追加（`title`） |
+| PATCH | `/api/subtasks/{subtask}` | 項目の更新（`title`・`is_done`） |
+| DELETE | `/api/subtasks/{subtask}` | 項目の削除 |
 | GET | `/api/tags` | タグ一覧 |
 | POST | `/api/tags` | タグ作成 |
 | PATCH | `/api/tags/{tag}` | タグ名の変更 |

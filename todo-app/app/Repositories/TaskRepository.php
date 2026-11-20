@@ -10,9 +10,12 @@ use Illuminate\Support\Facades\DB;
 
 class TaskRepository implements TaskRepositoryInterface
 {
+    /** タスクと一緒に返す関連データ */
+    public const RELATIONS = ['tag', 'subtasks'];
+
     public function listByUser(User $user, array $filters): Collection
     {
-        $query = $user->tasks()->with('tag');
+        $query = $user->tasks()->with(self::RELATIONS);
         $this->applySort($query, $filters['sort'] ?? 'manual');
 
         if (!empty($filters['status'])) {
@@ -69,7 +72,7 @@ class TaskRepository implements TaskRepositoryInterface
             $data['order'] = $this->maxOrder($user) + 1;
             $data['status'] = $data['status'] ?? 'todo';
 
-            return $user->tasks()->create($data)->load('tag');
+            return $user->tasks()->create($data)->load(self::RELATIONS);
         });
     }
 
@@ -77,7 +80,7 @@ class TaskRepository implements TaskRepositoryInterface
     {
         $task->update($data);
 
-        return $task->fresh('tag');
+        return $task->fresh(self::RELATIONS);
     }
 
     public function delete(Task $task): void
@@ -144,7 +147,16 @@ class TaskRepository implements TaskRepositoryInterface
             $newTask->order  = $this->maxOrder($task->user) + 1;
             $newTask->save();
 
-            return $newTask->load('tag');
+            // チェック項目も、チェックを外した状態で複製する
+            foreach ($task->subtasks as $subtask) {
+                $newTask->subtasks()->create([
+                    'title'   => $subtask->title,
+                    'is_done' => false,
+                    'order'   => $subtask->order,
+                ]);
+            }
+
+            return $newTask->load(self::RELATIONS);
         });
     }
 }

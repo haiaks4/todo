@@ -20,6 +20,15 @@ export const api = {
             axios.post('/api/tasks/bulk-status', { ids, status }),
         reorder: (ids: number[]) => axios.post('/api/tasks/reorder', { ids }),
     },
+    subtasks: {
+        create: (taskId: number, title: string) =>
+            axios
+                .post(`/api/tasks/${taskId}/subtasks`, { title })
+                .then((r) => r.data),
+        update: (id: number, data: { title?: string; is_done?: boolean }) =>
+            axios.patch(`/api/subtasks/${id}`, data).then((r) => r.data),
+        delete: (id: number) => axios.delete(`/api/subtasks/${id}`),
+    },
     tags: {
         list: () => axios.get('/api/tags').then((r) => r.data),
         create: (data: { name: string }) =>

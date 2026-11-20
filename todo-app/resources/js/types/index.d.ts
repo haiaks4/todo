@@ -15,6 +15,15 @@ export interface Tag {
     user_id: number;
 }
 
+/** タスクの中のチェック項目 */
+export interface Subtask {
+    id: number;
+    task_id: number;
+    title: string;
+    is_done: boolean;
+    order: number;
+}
+
 export interface Task {
     id: number;
     user_id: number;
@@ -26,6 +35,7 @@ export interface Task {
     priority: Priority | null;
     status: Status;
     order: number;
+    subtasks: Subtask[];
     created_at: string;
     updated_at: string;
 }
