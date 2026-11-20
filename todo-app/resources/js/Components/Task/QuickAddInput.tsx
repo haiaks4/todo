@@ -23,12 +23,14 @@ import type { Tag } from '@/types';
 
 interface Props {
     tags: Tag[];
+    /** 追加するタスクを入れるプロジェクト（null はインボックス） */
+    projectId: number | null;
     /** タスクを追加したとき（新しいタグを作ったときは tagCreated が true） */
     onAdded: (tagCreated: boolean) => void;
 }
 
 /** 一覧の上の入力欄から、タイトル・期限・タグ・優先度をまとめて入力して追加する */
-export default function QuickAddInput({ tags, onAdded }: Props) {
+export default function QuickAddInput({ tags, projectId, onAdded }: Props) {
     const [value, setValue] = useState('');
     const [focused, setFocused] = useState(false);
     const [submitting, setSubmitting] = useState(false);
@@ -65,6 +67,7 @@ export default function QuickAddInput({ tags, onAdded }: Props) {
                 priority: parsed.priority,
                 recurrence: parsed.recurrence,
                 tag_id: tagId,
+                project_id: projectId,
                 status: 'todo',
             });
             toast.success(`「${parsed.title}」を追加しました。`);

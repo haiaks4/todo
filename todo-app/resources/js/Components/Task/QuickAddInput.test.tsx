@@ -28,7 +28,9 @@ describe('QuickAddInput', () => {
 
     const setup = () => {
         const onAdded = vi.fn();
-        render(<QuickAddInput tags={tags} onAdded={onAdded} />);
+        render(
+            <QuickAddInput tags={tags} projectId={null} onAdded={onAdded} />,
+        );
         return {
             onAdded,
             input: screen.getByRole('textbox', { name: 'タスクを追加' }),
@@ -53,6 +55,7 @@ describe('QuickAddInput', () => {
             priority: 'high',
             recurrence: null,
             tag_id: 3,
+            project_id: null,
             status: 'todo',
         });
         expect(onAdded).toHaveBeenCalledWith(false);

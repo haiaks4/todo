@@ -57,6 +57,7 @@ return [
         'status'         => 'ステータス',
         'recurrence'     => '繰り返し',
         'tag_id'         => 'タグ',
+        'project_id'     => 'プロジェクト',
         'name'           => '名前',
         'ids'            => 'タスク',
         'remind_enabled' => 'リマインド設定',

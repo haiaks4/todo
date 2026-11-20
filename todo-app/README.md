@@ -29,6 +29,7 @@ Laravel 12 + Inertia.js + React (TypeScript) で作ったタスク管理アプ�
   - 長押し（または「選択」ボタン）で選択モードに入り、画面下のバーからまとめて操作
   - 並び替えは「並び替え」ボタンでモードを切り替えてから、つまみをドラッグ
   - タスクの作成は右下の「＋」ボタンから。作成・編集画面は下から出るシートで表示。シート上部のつまみや見出しを下にスワイプすると閉じる
+- **プロジェクト**：「仕事」「プライベート」のようなプロジェクト（リスト）を作り、画面上部の切り替えで「すべてのタスク・インボックス（プロジェクトなし）・各プロジェクト」を表示できる（未完了の件数つき。選んだものは端末ごとに保存）。プロジェクトを選んでいる間に作ったタスクはそのプロジェクトに入る。プロジェクトを削除すると、中のタスクはインボックスに移る
 - **タグ管理**：ユーザーごとにタグを作成・名前変更・削除できる。削除するとタスクからタグが外れる
 - **ダッシュボード**：ステータス別の件数と完了率をグラフで表示
 - **リマインドメール**：プロフィール画面で有効にすると、毎朝 8:00 に「期限が明日の未完了タスク」をメールで通知する
@@ -210,11 +211,11 @@ npm run check                              # 追加したファイルを Biome �
 todo-app/
 ├── app/
 │   ├── Http/
-│   │   ├── Controllers/        # TaskController, SubtaskController, TagController, ProfileController
+│   │   ├── Controllers/        # TaskController, SubtaskController, ProjectController, TagController, ProfileController
 │   │   └── Requests/           # 入力チェック（Task/*, Tag/*）
 │   ├── Jobs/                   # SendTaskReminderJob（リマインド送信）
 │   ├── Mail/                   # TaskReminderMail
-│   ├── Models/                 # User, Task, Tag（いずれも論理削除）, Subtask（タスクのチェック項目）
+│   ├── Models/                 # User, Task, Tag（いずれも論理削除）, Subtask（タスクのチェック項目）, Project
 │   ├── Policies/               # TaskPolicy, TagPolicy（本人のデータのみ操作可）
 │   └── Repositories/           # DB 操作をまとめたリポジトリ（インターフェースは Contracts/）
 ├── bootstrap/app.php           # ルーティングと、JSON API 用の例外ハンドリング
@@ -251,7 +252,7 @@ todo-app/
 
 | メソッド | パス | 内容 |
 | --- | --- | --- |
-| GET | `/api/tasks` | タスク一覧（`search`・`status`・`priority`・`tag_id` で絞り込み、`sort`＝`manual`・`due_date`・`priority`・`created_at` で並べ替え） |
+| GET | `/api/tasks` | タスク一覧（`search`・`status`・`priority`・`tag_id`・`project_id`（`none` はインボックス）で絞り込み、`sort`＝`manual`・`due_date`・`priority`・`created_at` で並べ替え） |
 | POST | `/api/tasks` | タスク作成（`recurrence`＝`daily`・`weekdays`・`weekly`・`monthly`・`yearly` で繰り返し。期限が必要） |
 | GET | `/api/tasks/{task}` | タスク詳細 |
 | PATCH | `/api/tasks/{task}` | タスク更新 |
@@ -267,6 +268,10 @@ todo-app/
 | GET | `/api/tasks/trash` | ごみ箱（削除したタスク）の一覧 |
 | POST | `/api/tasks/force-delete` | ごみ箱のタスクを完全に削除（`ids`） |
 | DELETE | `/api/tasks/trash` | ごみ箱を空にする |
+| GET | `/api/projects` | プロジェクト一覧（未完了のタスク数 `active_tasks_count` つき） |
+| POST | `/api/projects` | プロジェクト作成（`name`。同じユーザーの中で重複不可） |
+| PATCH | `/api/projects/{project}` | プロジェクト名の変更 |
+| DELETE | `/api/projects/{project}` | プロジェクト削除（中のタスクはインボックスに移る） |
 | GET | `/api/tags` | タグ一覧 |
 | POST | `/api/tags` | タグ作成 |
 | PATCH | `/api/tags/{tag}` | タグ名の変更 |

@@ -33,6 +33,13 @@ export const api = {
             axios.patch(`/api/subtasks/${id}`, data).then((r) => r.data),
         delete: (id: number) => axios.delete(`/api/subtasks/${id}`),
     },
+    projects: {
+        create: (data: { name: string }) =>
+            axios.post('/api/projects', data).then((r) => r.data),
+        update: (id: number, data: { name: string }) =>
+            axios.patch(`/api/projects/${id}`, data).then((r) => r.data),
+        delete: (id: number) => axios.delete(`/api/projects/${id}`),
+    },
     tags: {
         list: () => axios.get('/api/tags').then((r) => r.data),
         create: (data: { name: string }) =>

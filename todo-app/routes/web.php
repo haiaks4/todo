@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\SubtaskController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\TaskController;
@@ -61,6 +62,11 @@ Route::middleware('auth')->group(function () {
     Route::delete('/api/subtasks/{subtask}', [SubtaskController::class, 'destroy'])->name('subtask.destroy');
 
     // Tag API
+    Route::get('/api/projects', [ProjectController::class, 'index'])->name('project.index');
+    Route::post('/api/projects', [ProjectController::class, 'store'])->name('project.store');
+    Route::patch('/api/projects/{project}', [ProjectController::class, 'update'])->name('project.update');
+    Route::delete('/api/projects/{project}', [ProjectController::class, 'destroy'])->name('project.destroy');
+
     Route::get('/api/tags', [TagController::class, 'index'])->name('tag.index');
     Route::post('/api/tags', [TagController::class, 'store'])->name('tag.store');
     Route::patch('/api/tags/{tag}', [TagController::class, 'update'])->name('tag.update');

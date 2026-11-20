@@ -101,3 +101,36 @@ test('ごみ箱から元に戻したり、完全に削除したりできる', as
     await expect(taskCard(page, restoreTitle)).toBeVisible();
     await expect(taskCard(page, purgeTitle)).toBeHidden();
 });
+
+test('プロジェクトを作って切り替え、プロジェクトごとにタスクを分けられる', async ({
+    page,
+}) => {
+    const projectName = uniqueTitle('プロジェクト');
+    const inProject = uniqueTitle('プロジェクトのタスク');
+    const inInbox = uniqueTitle('インボックスのタスク');
+
+    // プロジェクトを作る
+    await page.getByRole('button', { name: /^プロジェクトを切り替え/ }).click();
+    await page.getByRole('menuitem', { name: 'プロジェクトの管理' }).click();
+    await page.getByLabel('新しいプロジェクト名').fill(projectName);
+    await page.getByRole('button', { name: '追加' }).click();
+    await page.getByRole('button', { name: '閉じる' }).first().click();
+
+    // インボックスに 1 件、プロジェクトに 1 件追加する
+    await page.getByRole('button', { name: /^プロジェクトを切り替え/ }).click();
+    await page.getByRole('menuitemradio', { name: 'インボックス' }).click();
+    await quickAdd(page, inInbox, inInbox);
+
+    await page.getByRole('button', { name: /^プロジェクトを切り替え/ }).click();
+    await page.getByRole('menuitemradio', { name: projectName }).click();
+    await quickAdd(page, inProject, inProject);
+    await expect(taskCard(page, inInbox)).toBeHidden();
+
+    // すべてのタスクでは両方が見え、プロジェクト名が付く
+    await page.getByRole('button', { name: /^プロジェクトを切り替え/ }).click();
+    await page.getByRole('menuitemradio', { name: 'すべてのタスク' }).click();
+    await expect(taskCard(page, inInbox)).toBeVisible();
+    await expect(
+        taskCard(page, inProject).getByText(projectName),
+    ).toBeVisible();
+});

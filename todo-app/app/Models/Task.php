@@ -13,6 +13,7 @@ class Task extends Model
     protected $fillable = [
         'user_id',
         'tag_id',
+        'project_id',
         'title',
         'description',
         'due_date',
@@ -39,6 +40,11 @@ class Task extends Model
     public function tag()
     {
         return $this->belongsTo(Tag::class);
+    }
+
+    public function project()
+    {
+        return $this->belongsTo(Project::class);
     }
 
     /** チェック項目（並び順どおり） */

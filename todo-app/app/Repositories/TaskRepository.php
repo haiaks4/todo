@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 class TaskRepository implements TaskRepositoryInterface
 {
     /** タスクと一緒に返す関連データ */
-    public const RELATIONS = ['tag', 'subtasks'];
+    public const RELATIONS = ['tag', 'subtasks', 'project:id,name'];
 
     public function listByUser(User $user, array $filters): Collection
     {
@@ -21,6 +21,13 @@ class TaskRepository implements TaskRepositoryInterface
 
         if (!empty($filters['status'])) {
             $query->where('status', $filters['status']);
+        }
+
+        // プロジェクト（none はプロジェクトに入っていないタスク＝インボックス）
+        if (($filters['project_id'] ?? null) === 'none') {
+            $query->whereNull('project_id');
+        } elseif (!empty($filters['project_id'])) {
+            $query->where('project_id', $filters['project_id']);
         }
 
         if (!empty($filters['tag_id'])) {
