@@ -212,6 +212,7 @@ export default function TaskItem({
     return (
         <div
             ref={setNodeRef}
+            data-slot="task-item"
             style={{
                 transform: CSS.Transform.toString(transform),
                 transition,

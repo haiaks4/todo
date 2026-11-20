@@ -39,7 +39,7 @@ Laravel 12 + Inertia.js + React (TypeScript) で作ったタスク管理アプ�
 | UI コンポーネント | [shadcn/ui](https://ui.shadcn.com/)（Radix UI ベース）、lucide-react（アイコン）、sonner（通知） |
 | フロントエンドのライブラリ | SWR（データ取得）、react-hook-form（フォーム）、dnd-kit（並び替え）、Recharts（グラフ） |
 | DB | SQLite（既定）／ MySQL 8（Laravel Sail 使用時） |
-| テスト | PHPUnit 11（バックエンド）、Vitest・React Testing Library（フロントエンド） |
+| テスト | PHPUnit 11（バックエンド）、Vitest・React Testing Library（フロントエンド）、Playwright（E2E） |
 | Lint・フォーマット | Biome |
 
 ## 必要な環境
@@ -143,9 +143,28 @@ php artisan schedule:list     # 登録されているスケジュールの確認
 php artisan test   # バックエンド（PHPUnit）
 npm test           # フロントエンド（Vitest。resources/js の *.test.ts / *.test.tsx）
 npm run test:watch # フロントエンドのテストを、ファイルの変更を監視しながら実行
+npm run test:e2e   # E2E テスト（Playwright。ビルドしてからブラウザで操作する）
 ```
 
 バックエンドのテストは SQLite のメモリ上の DB で実行されます（`phpunit.xml` で設定）。MySQL やビルド済みのフロントエンドは必要ありません。フロントエンドのテストは [Vitest](https://vitest.dev/) と [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/) で書き、jsdom（ブラウザを模した環境）で実行します（設定は `vitest.config.ts`）。関数のテストはテスト対象の隣に `*.test.ts`、コンポーネントのテストは `*.test.tsx` として置きます。
+
+### E2E テスト（Playwright）
+
+[Playwright](https://playwright.dev/) で実際のブラウザを動かし、ログインから操作までを通して確かめます（テストは `e2e/`、設定は `playwright.config.ts`）。細かい場合分けは PHPUnit と Vitest で確かめ、E2E は主要な流れだけに絞っています。
+
+- PC 幅：作成画面からの作成、完了と「元に戻す」、削除と「元に戻す」、すばやく追加、横のパネルでの編集
+- スマホ幅：スワイプでの完了・削除、長押しでの選択とまとめて完了
+
+初めて実行するときは、ブラウザを入れておきます。
+
+```bash
+npx playwright install chromium
+npm run test:e2e
+```
+
+- テスト用のサーバー（ポート 8123、`E2E_PORT` で変更可）は自動で起動します。データは専用の `database/e2e.sqlite` に毎回作り直すので、開発用のデータには影響しません。
+- 別の場所にある Chromium を使う場合は `PW_CHROMIUM_PATH` にその実行ファイルを指定します。
+- 失敗したテストの記録（トレース）は `test-results/` に残り、`npx playwright show-trace <ファイル>` で見られます。
 
 ## CI
 
@@ -153,6 +172,7 @@ GitHub Actions（`.github/workflows/ci.yml`）で、プルリクエストと `ma
 
 - バックエンド：`php artisan test`
 - フロントエンド：型チェック（`tsc --noEmit`）、Biome による Lint・フォーマットのチェック（`biome ci`）、テスト（`npm test`）、ビルド（`vite build`）
+- E2E：`npm run test:e2e`（失敗したときはレポートを Actions の成果物として 7 日間保存）
 
 ## コード品質
 
