@@ -13,6 +13,8 @@ return [
         'low'    => '低',
     ],
 
+    'recurrence_requires_due_date' => '繰り返すには期限を設定してください。',
+
     'status' => [
         'todo'        => '未着手',
         'in_progress' => '進行中',

@@ -23,7 +23,12 @@ import {
 } from '@/Components/ui/select';
 import { Textarea } from '@/Components/ui/textarea';
 import { api, getErrorMessage, getValidationErrors } from '@/lib/api';
-import { formatDateTime, PRIORITY_OPTIONS, STATUS_OPTIONS } from '@/lib/task';
+import {
+    formatDateTime,
+    PRIORITY_OPTIONS,
+    RECURRENCE_OPTIONS,
+    STATUS_OPTIONS,
+} from '@/lib/task';
 import type { Tag, Task } from '@/types';
 import SubtaskList from './SubtaskList';
 
@@ -34,6 +39,7 @@ interface FormValues {
     title: string;
     description: string;
     due_date: string;
+    recurrence: string;
     priority: string;
     status: string;
     tag_id: string;
@@ -45,6 +51,7 @@ const toFormValues = (task: Task | null): FormValues =>
               title: task.title,
               description: task.description ?? '',
               due_date: task.due_date ? task.due_date.slice(0, 16) : '',
+              recurrence: task.recurrence ?? NONE,
               priority: task.priority ?? NONE,
               status: task.status,
               tag_id: task.tag_id?.toString() ?? NONE,
@@ -53,6 +60,7 @@ const toFormValues = (task: Task | null): FormValues =>
               title: '',
               description: '',
               due_date: '',
+              recurrence: NONE,
               priority: NONE,
               status: 'todo',
               tag_id: NONE,
@@ -62,6 +70,11 @@ const toPayload = (values: FormValues): Record<keyof FormValues, unknown> => ({
     title: values.title,
     description: values.description || null,
     due_date: values.due_date || null,
+    // 期限が無いときは繰り返さない
+    recurrence:
+        values.recurrence === NONE || !values.due_date
+            ? null
+            : values.recurrence,
     priority: values.priority === NONE ? null : values.priority,
     status: values.status,
     tag_id: values.tag_id === NONE ? null : Number(values.tag_id),
@@ -95,8 +108,18 @@ function TaskForm({
         control,
         handleSubmit,
         setError,
+        setValue,
+        watch,
         formState: { errors, isSubmitting, isDirty, dirtyFields },
     } = useForm<FormValues>({ defaultValues: toFormValues(task) });
+
+    // 期限を消したら、繰り返しも解除する
+    const hasDueDate = !!watch('due_date');
+    useEffect(() => {
+        if (!hasDueDate) {
+            setValue('recurrence', NONE, { shouldDirty: true });
+        }
+    }, [hasDueDate, setValue]);
 
     useEffect(() => {
         onDirtyChange(isDirty);
@@ -209,6 +232,50 @@ function TaskForm({
                         {...register('due_date')}
                     />
                     <InputError message={errors.due_date?.message} />
+                </div>
+
+                {/* 繰り返し */}
+                <div className="space-y-2">
+                    <Label htmlFor="task-recurrence">繰り返し</Label>
+                    <Controller
+                        control={control}
+                        name="recurrence"
+                        render={({ field }) => (
+                            <Select
+                                value={field.value}
+                                onValueChange={field.onChange}
+                                disabled={!hasDueDate}
+                            >
+                                <SelectTrigger
+                                    id="task-recurrence"
+                                    className="w-full"
+                                    aria-invalid={!!errors.recurrence}
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value={NONE}>
+                                        繰り返さない
+                                    </SelectItem>
+                                    {RECURRENCE_OPTIONS.map((opt) => (
+                                        <SelectItem
+                                            key={opt.value}
+                                            value={opt.value}
+                                        >
+                                            {opt.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
+                    />
+                    {hasDueDate ? (
+                        <InputError message={errors.recurrence?.message} />
+                    ) : (
+                        <p className="text-xs text-muted-foreground">
+                            期限を設定すると選べます
+                        </p>
+                    )}
                 </div>
 
                 {/* タグ */}

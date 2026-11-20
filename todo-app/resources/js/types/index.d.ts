@@ -8,6 +8,7 @@ export interface User {
 
 export type Priority = 'high' | 'medium' | 'low';
 export type Status = 'todo' | 'in_progress' | 'done';
+export type Recurrence = 'daily' | 'weekdays' | 'weekly' | 'monthly' | 'yearly';
 
 export interface Tag {
     id: number;
@@ -32,6 +33,8 @@ export interface Task {
     title: string;
     description: string | null;
     due_date: string | null;
+    /** 繰り返し。完了にすると次の期限に進んで未着手に戻る */
+    recurrence: Recurrence | null;
     priority: Priority | null;
     status: Status;
     order: number;

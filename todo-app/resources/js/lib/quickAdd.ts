@@ -1,4 +1,4 @@
-import type { Priority } from '@/types';
+import type { Priority, Recurrence } from '@/types';
 
 /**
  * すばやく追加の入力を解析する。
@@ -10,6 +10,7 @@ import type { Priority } from '@/types';
  * - 日付だけのときは 23:59、時刻だけのときは今日（その時刻を過ぎていれば明日）にする
  * - #タグ: 既存のタグ名と一致すればそれを使い、なければ新しいタグとして扱う
  * - 優先度: !高 / !中 / !低
+ * - 繰り返し: 毎日 / 平日 / 毎週 / 毎月 / 毎年 / 毎週月曜（日付が無ければ今日、毎週◯曜ならその曜日を期限にする）
  */
 export interface QuickAddResult {
     title: string;
@@ -18,12 +19,21 @@ export interface QuickAddResult {
     priority: Priority | null;
     /** #タグの名前。指定がなければ null */
     tagName: string | null;
+    recurrence: Recurrence | null;
 }
 
 const PRIORITY_WORDS: Record<string, Priority> = {
     高: 'high',
     中: 'medium',
     低: 'low',
+};
+
+const RECURRENCE_WORDS: Record<string, Recurrence> = {
+    毎日: 'daily',
+    平日: 'weekdays',
+    毎週: 'weekly',
+    毎月: 'monthly',
+    毎年: 'yearly',
 };
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
@@ -108,6 +118,7 @@ export function parseQuickAdd(
     let time: [number, number] | null = null;
     let priority: Priority | null = null;
     let tagName: string | null = null;
+    let recurrence: Recurrence | null = null;
 
     for (const raw of input.trim().split(/[\s　]+/)) {
         if (raw === '') continue;
@@ -123,6 +134,16 @@ export function parseQuickAdd(
         // #タグ（タグ名は全角のまま使う）
         if (/^#./.test(word) && !tagName) {
             tagName = raw.slice(1);
+            continue;
+        }
+
+        // 繰り返し（毎週月曜 のように曜日を続けてもよい）
+        const r = word.match(
+            /^(毎日|平日|毎週|毎月|毎年)(?:([月火水木金土日])曜日?)?$/,
+        );
+        if (r && !recurrence && (!r[2] || (r[1] === '毎週' && !date))) {
+            recurrence = RECURRENCE_WORDS[r[1]];
+            if (r[2]) date = parseDate(`${r[2]}曜`, now);
             continue;
         }
 
@@ -143,6 +164,20 @@ export function parseQuickAdd(
         titleWords.push(raw);
     }
 
+    // 繰り返しで日付も時刻も無いときは、今日（平日の繰り返しで今日が土日なら次の月曜）にする
+    if (recurrence && !date && !time) {
+        const today = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate(),
+        );
+        const day = today.getDay();
+        if (recurrence === 'weekdays' && (day === 0 || day === 6)) {
+            today.setDate(today.getDate() + (day === 6 ? 2 : 1));
+        }
+        date = today;
+    }
+
     let dueDate: string | null = null;
     if (date || time) {
         const due = date
@@ -158,5 +193,11 @@ export function parseQuickAdd(
         dueDate = formatLocal(due);
     }
 
-    return { title: titleWords.join(' '), dueDate, priority, tagName };
+    return {
+        title: titleWords.join(' '),
+        dueDate,
+        priority,
+        tagName,
+        recurrence,
+    };
 }

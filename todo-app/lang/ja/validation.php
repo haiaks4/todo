@@ -55,6 +55,7 @@ return [
         'due_date'       => '期限',
         'priority'       => '優先度',
         'status'         => 'ステータス',
+        'recurrence'     => '繰り返し',
         'tag_id'         => 'タグ',
         'name'           => '名前',
         'ids'            => 'タスク',

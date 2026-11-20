@@ -12,6 +12,7 @@ describe('parseQuickAdd', () => {
             dueDate: null,
             priority: null,
             tagName: null,
+            recurrence: null,
         });
     });
 
@@ -21,6 +22,7 @@ describe('parseQuickAdd', () => {
             dueDate: '2026-11-20T15:00',
             priority: 'high',
             tagName: '仕事',
+            recurrence: null,
         });
     });
 
@@ -72,5 +74,33 @@ describe('parseQuickAdd', () => {
         expect(r.title).toBe('明後日 の準備');
         expect(r.dueDate).toBe('2026-11-20T23:59');
         expect(parse('!最高 a').title).toBe('!最高 a');
+    });
+
+    it('繰り返しを読む', () => {
+        // 日付が無ければ今日の 23:59
+        expect(parse('ゴミ出し 毎日 8時')).toMatchObject({
+            title: 'ゴミ出し',
+            recurrence: 'daily',
+            dueDate: '2026-11-20T08:00',
+        });
+        expect(parse('日報 平日').dueDate).toBe('2026-11-19T23:59');
+        expect(parse('家賃 毎月 11/25')).toMatchObject({
+            recurrence: 'monthly',
+            dueDate: '2026-11-25T23:59',
+        });
+        // 毎週◯曜 は、その曜日を期限にする
+        expect(parse('定例 毎週月曜 10時')).toMatchObject({
+            title: '定例',
+            recurrence: 'weekly',
+            dueDate: '2026-11-23T10:00',
+        });
+        expect(parse('a 毎年').recurrence).toBe('yearly');
+    });
+
+    it('平日の繰り返しで今日が土日なら、次の月曜にする', () => {
+        const saturday = new Date(2026, 10, 21, 10, 0);
+        expect(parseQuickAdd('日報 平日', saturday).dueDate).toBe(
+            '2026-11-23T23:59',
+        );
     });
 });

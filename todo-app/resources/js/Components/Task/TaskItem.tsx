@@ -8,6 +8,7 @@ import {
     ListChecks,
     MoreHorizontal,
     Pencil,
+    Repeat,
     RotateCcw,
     Trash2,
 } from 'lucide-react';
@@ -40,6 +41,7 @@ import {
     isOverdue,
     PRIORITY_BADGE_CLASSES,
     PRIORITY_LABELS,
+    RECURRENCE_LABELS,
     STATUS_OPTIONS,
 } from '@/lib/task';
 import { cn } from '@/lib/utils';
@@ -415,6 +417,12 @@ export default function TaskItem({
                                 >
                                     <CalendarClock className="size-3.5" />
                                     {formatDateTime(task.due_date)}
+                                </span>
+                            )}
+                            {task.recurrence && (
+                                <span className="inline-flex items-center gap-1 text-xs whitespace-nowrap text-muted-foreground">
+                                    <Repeat className="size-3.5" aria-hidden />
+                                    {RECURRENCE_LABELS[task.recurrence]}
                                 </span>
                             )}
                             {overdue && (

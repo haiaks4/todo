@@ -51,6 +51,7 @@ describe('QuickAddInput', () => {
             title: '資料作成',
             due_date: '2026-11-20T15:00',
             priority: 'high',
+            recurrence: null,
             tag_id: 3,
             status: 'todo',
         });
