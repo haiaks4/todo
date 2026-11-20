@@ -20,7 +20,7 @@ test('スマホでは右スワイプで完了、左スワイプで削除でき�
 
     await swipe(taskCard(page, deleteTitle).getByText(deleteTitle), -220);
     await expect(
-        page.getByText(`「${deleteTitle}」を削除しました。`),
+        page.getByText(`「${deleteTitle}」をごみ箱に移しました。`),
     ).toBeVisible();
     await expect(taskCard(page, deleteTitle)).toBeHidden();
 });

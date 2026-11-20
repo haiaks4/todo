@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\TaskController;
 use App\Jobs\SendTaskReminderJob;
 use App\Models\Task;
+use App\Repositories\Contracts\TaskRepositoryInterface;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -22,3 +24,11 @@ Schedule::call(function () {
             $tasks->each(fn (Task $task) => SendTaskReminderJob::dispatch($task));
         });
 })->dailyAt('08:00')->name('send-task-reminders')->withoutOverlapping()->onOneServer();
+
+// ごみ箱に入れてから一定日数たったタスクを、毎日深夜に完全に削除する
+Artisan::command('tasks:purge-trash', function (TaskRepositoryInterface $tasks) {
+    $count = $tasks->purgeTrashedBefore(now()->subDays(TaskController::TRASH_RETENTION_DAYS));
+    $this->info("ごみ箱から {$count} 件のタスクを完全に削除しました。");
+})->purpose('ごみ箱に入れてから一定日数たったタスクを完全に削除する');
+
+Schedule::command('tasks:purge-trash')->dailyAt('03:00')->name('purge-trashed-tasks')->withoutOverlapping()->onOneServer();

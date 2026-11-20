@@ -38,11 +38,16 @@ Route::middleware('auth')->group(function () {
 
     // Task page
     Route::get('/task', [TaskController::class, 'index'])->name('task.index');
+    Route::get('/task/trash', [TaskController::class, 'trash'])->name('task.trash');
 
     // Task API
     // 静的なパスは {task} より先に定義する
     Route::post('/api/tasks/bulk-delete', [TaskController::class, 'bulkDestroy'])->name('task.bulk-destroy');
     Route::post('/api/tasks/restore', [TaskController::class, 'restore'])->name('task.restore');
+    // ごみ箱（/api/tasks/{task} より前に定義する）
+    Route::get('/api/tasks/trash', [TaskController::class, 'trashed'])->name('task.trashed');
+    Route::delete('/api/tasks/trash', [TaskController::class, 'emptyTrash'])->name('task.empty-trash');
+    Route::post('/api/tasks/force-delete', [TaskController::class, 'forceDelete'])->name('task.force-delete');
     Route::post('/api/tasks/bulk-status', [TaskController::class, 'bulkUpdateStatus'])->name('task.bulk-status');
     Route::post('/api/tasks/reorder', [TaskController::class, 'reorder'])->name('task.reorder');
     Route::get('/api/tasks', [TaskController::class, 'list'])->name('task.list');

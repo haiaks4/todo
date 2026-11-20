@@ -67,3 +67,37 @@ test('すばやく追加で期限・タグ・優先度を一緒に設定でき�
     await expect(card.getByText('仕事', { exact: true })).toBeVisible();
     await expect(card.getByText(`${tokyoMonthDay(1)} 15:00`)).toBeVisible();
 });
+
+test('ごみ箱から元に戻したり、完全に削除したりできる', async ({ page }) => {
+    const restoreTitle = uniqueTitle('ごみ箱から戻す');
+    const purgeTitle = uniqueTitle('完全に削除する');
+    await quickAdd(page, restoreTitle, restoreTitle);
+    await quickAdd(page, purgeTitle, purgeTitle);
+
+    for (const title of [restoreTitle, purgeTitle]) {
+        await taskCard(page, title)
+            .getByRole('button', { name: '操作' })
+            .click();
+        await page.getByRole('menuitem', { name: '削除' }).click();
+        await expect(taskCard(page, title)).toBeHidden();
+    }
+
+    await page.getByRole('link', { name: 'ごみ箱' }).click();
+    await expect(page).toHaveURL(/\/task\/trash$/);
+    const trash = page.getByRole('list', { name: 'ごみ箱のタスク' });
+
+    await page
+        .getByRole('button', { name: `「${restoreTitle}」を元に戻す` })
+        .click();
+    await expect(trash.getByText(restoreTitle)).toBeHidden();
+
+    await page
+        .getByRole('button', { name: `「${purgeTitle}」を完全に削除` })
+        .click();
+    await page.getByRole('button', { name: '完全に削除する' }).click();
+    await expect(trash.getByText(purgeTitle)).toBeHidden();
+
+    await page.getByRole('link', { name: 'タスク管理に戻る' }).click();
+    await expect(taskCard(page, restoreTitle)).toBeVisible();
+    await expect(taskCard(page, purgeTitle)).toBeHidden();
+});

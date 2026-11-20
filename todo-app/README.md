@@ -22,6 +22,7 @@ Laravel 12 + Inertia.js + React (TypeScript) で作ったタスク管理アプ�
   - ドラッグ&ドロップでの並び替え（絞り込み中でも、表示されていないタスクの順序は保たれる）
   - 複数のタスクを選択して、まとめて完了・削除
   - 削除した直後なら、通知の「元に戻す」で取り消せる
+- **ごみ箱**：削除したタスクはごみ箱に入り、あとから元に戻したり完全に削除したりできる（「ごみ箱を空にする」でまとめて削除）。ごみ箱に入れてから 30 日たつと、毎日 3:00 の自動処理で完全に削除される
   - 期限を過ぎた未完了タスクを強調表示
 - **スマホ向けの操作**
   - 右にスワイプで完了、左にスワイプで削除
@@ -233,7 +234,7 @@ todo-app/
 │   └── views/emails/           # リマインドメールのテンプレート
 ├── routes/
 │   ├── web.php                 # 画面と JSON API のルート
-│   └── console.php             # スケジュール（毎朝 8:00 のリマインド）
+│   └── console.php             # スケジュール（毎朝 8:00 のリマインド、毎日 3:00 のごみ箱の自動削除）
 └── tests/Feature/              # 認証、プロフィール、タスク・タグ API のテスト
 ```
 
@@ -245,6 +246,7 @@ todo-app/
 | --- | --- |
 | ダッシュボード | `/dashboard` |
 | タスク管理 | `/task` |
+| ごみ箱 | `/task/trash` |
 | プロフィール | `/profile` |
 
 | メソッド | パス | 内容 |
@@ -262,6 +264,9 @@ todo-app/
 | POST | `/api/tasks/{task}/subtasks` | チェックリストに項目を追加（`title`） |
 | PATCH | `/api/subtasks/{subtask}` | 項目の更新（`title`・`is_done`） |
 | DELETE | `/api/subtasks/{subtask}` | 項目の削除 |
+| GET | `/api/tasks/trash` | ごみ箱（削除したタスク）の一覧 |
+| POST | `/api/tasks/force-delete` | ごみ箱のタスクを完全に削除（`ids`） |
+| DELETE | `/api/tasks/trash` | ごみ箱を空にする |
 | GET | `/api/tags` | タグ一覧 |
 | POST | `/api/tags` | タグ作成 |
 | PATCH | `/api/tags/{tag}` | タグ名の変更 |

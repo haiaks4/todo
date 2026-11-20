@@ -16,6 +16,10 @@ export const api = {
         bulkDelete: (ids: number[]) =>
             axios.post('/api/tasks/bulk-delete', { ids }),
         restore: (ids: number[]) => axios.post('/api/tasks/restore', { ids }),
+        trash: () => axios.get('/api/tasks/trash').then((r) => r.data),
+        forceDelete: (ids: number[]) =>
+            axios.post('/api/tasks/force-delete', { ids }),
+        emptyTrash: () => axios.delete('/api/tasks/trash'),
         bulkUpdateStatus: (ids: number[], status: string) =>
             axios.post('/api/tasks/bulk-status', { ids, status }),
         reorder: (ids: number[]) => axios.post('/api/tasks/reorder', { ids }),
