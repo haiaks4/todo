@@ -8,6 +8,7 @@ export const makeTask = (overrides: Partial<Task> = {}): Task => ({
     title: 'テストのタスク',
     description: null,
     due_date: null,
+    recurrence: null,
     priority: null,
     status: 'todo',
     order: 1,

@@ -2,6 +2,7 @@ import {
     CalendarClock,
     CornerDownLeft,
     Plus,
+    Repeat,
     Tag as TagIcon,
 } from 'lucide-react';
 import { useId, useState } from 'react';
@@ -16,6 +17,7 @@ import {
     formatDateTime,
     PRIORITY_BADGE_CLASSES,
     PRIORITY_LABELS,
+    RECURRENCE_LABELS,
 } from '@/lib/task';
 import type { Tag } from '@/types';
 
@@ -61,6 +63,7 @@ export default function QuickAddInput({ tags, onAdded }: Props) {
                 title: parsed.title,
                 due_date: parsed.dueDate,
                 priority: parsed.priority,
+                recurrence: parsed.recurrence,
                 tag_id: tagId,
                 status: 'todo',
             });
@@ -125,13 +128,22 @@ export default function QuickAddInput({ tags, onAdded }: Props) {
                 {error ? (
                     <p className="text-destructive">{error}</p>
                 ) : parsed &&
-                  (parsed.dueDate || parsed.tagName || parsed.priority) ? (
+                  (parsed.dueDate ||
+                      parsed.tagName ||
+                      parsed.priority ||
+                      parsed.recurrence) ? (
                     // 読み取った内容のプレビュー
                     <div className="flex flex-wrap items-center gap-1.5 text-muted-foreground">
                         {parsed.dueDate && (
                             <span className="inline-flex items-center gap-1">
                                 <CalendarClock className="size-3.5" />
                                 {formatDateTime(parsed.dueDate)}
+                            </span>
+                        )}
+                        {parsed.recurrence && (
+                            <span className="inline-flex items-center gap-1">
+                                <Repeat className="size-3.5" />
+                                {RECURRENCE_LABELS[parsed.recurrence]}
                             </span>
                         )}
                         {parsed.tagName && (
@@ -154,7 +166,7 @@ export default function QuickAddInput({ tags, onAdded }: Props) {
                 ) : (
                     focused && (
                         <p className="text-muted-foreground">
-                            期限（明日・金曜・11/25・15時）、#タグ、!高・!中・!低
+                            期限（明日・金曜・11/25・15時）、繰り返し（毎日・毎週月曜）、#タグ、!高・!中・!低
                             も一緒に書けます
                         </p>
                     )

@@ -1,4 +1,4 @@
-import type { Priority, Status, Task } from '@/types';
+import type { Priority, Recurrence, Status, Task } from '@/types';
 
 export const STATUS_OPTIONS: { value: Status; label: string }[] = [
     { value: 'todo', label: '未着手' },
@@ -11,6 +11,22 @@ export const PRIORITY_OPTIONS: { value: Priority; label: string }[] = [
     { value: 'medium', label: '中' },
     { value: 'low', label: '低' },
 ];
+
+export const RECURRENCE_OPTIONS: { value: Recurrence; label: string }[] = [
+    { value: 'daily', label: '毎日' },
+    { value: 'weekdays', label: '平日（月〜金）' },
+    { value: 'weekly', label: '毎週' },
+    { value: 'monthly', label: '毎月' },
+    { value: 'yearly', label: '毎年' },
+];
+
+export const RECURRENCE_LABELS: Record<Recurrence, string> = {
+    daily: '毎日',
+    weekdays: '平日',
+    weekly: '毎週',
+    monthly: '毎月',
+    yearly: '毎年',
+};
 
 export type SortKey = 'manual' | 'due_date' | 'priority' | 'created_at';
 

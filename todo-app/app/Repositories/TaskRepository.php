@@ -5,6 +5,7 @@ namespace App\Repositories;
 use App\Models\Task;
 use App\Models\User;
 use App\Repositories\Contracts\TaskRepositoryInterface;
+use App\Support\Recurrence;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -78,9 +79,32 @@ class TaskRepository implements TaskRepositoryInterface
 
     public function update(Task $task, array $data): Task
     {
-        $task->update($data);
+        DB::transaction(function () use ($task, $data) {
+            $task->fill($data);
+
+            if ($task->isDirty('status') && $task->status === 'done') {
+                $this->advanceIfRecurring($task);
+            }
+
+            $task->save();
+        });
 
         return $task->fresh(self::RELATIONS);
+    }
+
+    /**
+     * 繰り返しタスクを完了にしたときは、完了にせず次の期限に進めて未着手に戻す。
+     * チェックリストのチェックも外す。
+     */
+    private function advanceIfRecurring(Task $task): void
+    {
+        if ($task->recurrence === null || $task->due_date === null) {
+            return;
+        }
+
+        $task->due_date = Recurrence::next($task->due_date, $task->recurrence);
+        $task->status = 'todo';
+        $task->subtasks()->update(['is_done' => false]);
     }
 
     public function delete(Task $task): void
@@ -101,7 +125,28 @@ class TaskRepository implements TaskRepositoryInterface
 
     public function bulkUpdateStatus(User $user, array $ids, string $status): void
     {
-        $user->tasks()->whereIn('id', $ids)->update(['status' => $status]);
+        DB::transaction(function () use ($user, $ids, $status) {
+            $advancedIds = [];
+
+            if ($status === 'done') {
+                $recurring = $user->tasks()
+                    ->whereIn('id', $ids)
+                    ->where('status', '!=', 'done')
+                    ->whereNotNull('recurrence')
+                    ->whereNotNull('due_date')
+                    ->get();
+
+                foreach ($recurring as $task) {
+                    $this->advanceIfRecurring($task);
+                    $task->save();
+                    $advancedIds[] = $task->id;
+                }
+            }
+
+            $user->tasks()
+                ->whereIn('id', array_diff($ids, $advancedIds))
+                ->update(['status' => $status]);
+        });
     }
 
     public function reorder(User $user, array $ids): void

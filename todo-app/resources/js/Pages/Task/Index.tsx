@@ -61,6 +61,7 @@ import {
     matchesDueView,
 } from '@/lib/due';
 import {
+    formatDateTime,
     isSortKey,
     PRIORITY_OPTIONS,
     SORT_OPTIONS,
@@ -232,6 +233,12 @@ export default function TaskIndex() {
     );
 
     const handleStatusChange = async (task: Task, status: Status) => {
+        // 繰り返しタスクは、完了にすると次の期限に進んで未着手に戻る
+        if (status === 'done' && task.recurrence && task.due_date) {
+            await completeRecurring(task);
+            return;
+        }
+
         // 先に画面へ反映し、通信を待たずに操作できるようにする
         setLocalTasks((prev) =>
             prev.map((t) => (t.id === task.id ? { ...t, status } : t)),
@@ -254,6 +261,37 @@ export default function TaskIndex() {
                 },
             });
         }
+    };
+
+    const completeRecurring = async (task: Task) => {
+        let updated: Task;
+        try {
+            updated = await api.tasks.update(task.id, { status: 'done' });
+        } catch (e) {
+            toast.error(getErrorMessage(e));
+            return;
+        }
+        mutateTasks();
+        toast.success(`「${task.title}」を完了にしました。`, {
+            description: updated.due_date
+                ? `次回の期限：${formatDateTime(updated.due_date)}`
+                : undefined,
+            action: {
+                label: '元に戻す',
+                onClick: async () => {
+                    try {
+                        // 期限とステータスを完了にする前の状態に戻す
+                        await api.tasks.update(task.id, {
+                            status: task.status,
+                            due_date: task.due_date,
+                        });
+                    } catch (e) {
+                        toast.error(getErrorMessage(e));
+                    }
+                    mutateTasks();
+                },
+            },
+        });
     };
 
     const handleToggleSelect = (id: number) => {
