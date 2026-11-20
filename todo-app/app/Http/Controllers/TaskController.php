@@ -31,6 +31,7 @@ class TaskController extends Controller
             'tag_id'   => ['nullable', 'integer'],
             'priority' => ['nullable', 'in:high,medium,low'],
             'search'   => ['nullable', 'string', 'max:255'],
+            'sort'     => ['nullable', 'in:manual,due_date,priority,created_at'],
         ]);
 
         $tasks = $this->taskRepository->listByUser($request->user(), $filters);

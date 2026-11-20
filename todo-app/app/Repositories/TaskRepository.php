@@ -12,7 +12,8 @@ class TaskRepository implements TaskRepositoryInterface
 {
     public function listByUser(User $user, array $filters): Collection
     {
-        $query = $user->tasks()->with('tag')->orderBy('order')->orderBy('id');
+        $query = $user->tasks()->with('tag');
+        $this->applySort($query, $filters['sort'] ?? 'manual');
 
         if (!empty($filters['status'])) {
             $query->where('status', $filters['status']);
@@ -37,6 +38,29 @@ class TaskRepository implements TaskRepositoryInterface
         }
 
         return $query->get();
+    }
+
+    /**
+     * 並べ替え。同じ値のタスクは手動の並び順（order）で並べる。
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder<Task>|\Illuminate\Database\Eloquent\Relations\HasMany<Task, User>  $query
+     */
+    private function applySort($query, string $sort): void
+    {
+        match ($sort) {
+            // 期限が近い順（期限なしは最後）
+            'due_date' => $query->orderByRaw('due_date IS NULL')->orderBy('due_date'),
+            // 優先度が高い順（未設定は最後）。同じ優先度なら期限が近い順
+            'priority' => $query
+                ->orderByRaw("CASE priority WHEN 'high' THEN 0 WHEN 'medium' THEN 1 WHEN 'low' THEN 2 ELSE 3 END")
+                ->orderByRaw('due_date IS NULL')
+                ->orderBy('due_date'),
+            // 作成日が新しい順
+            'created_at' => $query->orderByDesc('created_at')->orderByDesc('id'),
+            default => null,
+        };
+
+        $query->orderBy('order')->orderBy('id');
     }
 
     public function create(User $user, array $data): Task

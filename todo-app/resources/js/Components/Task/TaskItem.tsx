@@ -51,6 +51,8 @@ interface Props {
     selecting: boolean;
     /** 並び替えモード中（スマホでドラッグハンドルを表示する） */
     reordering: boolean;
+    /** ドラッグで並び替えできるか（手動の並び順のときだけ） */
+    draggable: boolean;
     onToggleSelect: (id: number) => void;
     /** 長押しで選択モードに入る */
     onLongPress: (id: number) => void;
@@ -73,6 +75,7 @@ export default function TaskItem({
     selected,
     selecting,
     reordering,
+    draggable,
     onToggleSelect,
     onLongPress,
     active,
@@ -88,7 +91,7 @@ export default function TaskItem({
         transform,
         transition,
         isDragging,
-    } = useSortable({ id: task.id });
+    } = useSortable({ id: task.id, disabled: !draggable });
 
     const done = task.status === 'done';
     const overdue = isOverdue(task);
@@ -285,20 +288,22 @@ export default function TaskItem({
                 )}
             >
                 {/* ドラッグハンドル（PC は常に、スマホは並び替えモードのときだけ表示） */}
-                <button
-                    type="button"
-                    {...attributes}
-                    {...listeners}
-                    className={cn(
-                        'shrink-0 cursor-grab touch-none items-center justify-center rounded text-muted-foreground/60 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:cursor-grabbing',
-                        reordering ? 'flex size-10' : 'hidden sm:flex',
-                    )}
-                    aria-label="ドラッグして並び替え"
-                >
-                    <GripVertical
-                        className={reordering ? 'size-5' : 'size-4'}
-                    />
-                </button>
+                {draggable && (
+                    <button
+                        type="button"
+                        {...attributes}
+                        {...listeners}
+                        className={cn(
+                            'shrink-0 cursor-grab touch-none items-center justify-center rounded text-muted-foreground/60 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:cursor-grabbing',
+                            reordering ? 'flex size-10' : 'hidden sm:flex',
+                        )}
+                        aria-label="ドラッグして並び替え"
+                    >
+                        <GripVertical
+                            className={reordering ? 'size-5' : 'size-4'}
+                        />
+                    </button>
+                )}
 
                 {/* 選択（PC は常に、スマホは選択モードのときだけ表示） */}
                 <Checkbox
