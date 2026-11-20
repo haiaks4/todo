@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SubtaskController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\TaskController;
 use Illuminate\Support\Facades\Route;
@@ -50,6 +51,9 @@ Route::middleware('auth')->group(function () {
     Route::patch('/api/tasks/{task}', [TaskController::class, 'update'])->name('task.update');
     Route::delete('/api/tasks/{task}', [TaskController::class, 'destroy'])->name('task.destroy');
     Route::post('/api/tasks/{task}/duplicate', [TaskController::class, 'duplicate'])->name('task.duplicate');
+    Route::post('/api/tasks/{task}/subtasks', [SubtaskController::class, 'store'])->name('subtask.store');
+    Route::patch('/api/subtasks/{subtask}', [SubtaskController::class, 'update'])->name('subtask.update');
+    Route::delete('/api/subtasks/{subtask}', [SubtaskController::class, 'destroy'])->name('subtask.destroy');
 
     // Tag API
     Route::get('/api/tags', [TagController::class, 'index'])->name('tag.index');

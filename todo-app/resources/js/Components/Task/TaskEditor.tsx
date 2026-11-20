@@ -25,6 +25,7 @@ import { Textarea } from '@/Components/ui/textarea';
 import { api, getErrorMessage, getValidationErrors } from '@/lib/api';
 import { formatDateTime, PRIORITY_OPTIONS, STATUS_OPTIONS } from '@/lib/task';
 import type { Tag, Task } from '@/types';
+import SubtaskList from './SubtaskList';
 
 /** Select で「未設定」を表す値（Radix の Select は空文字を値にできない） */
 const NONE = 'none';
@@ -75,6 +76,8 @@ interface FormProps {
     onDelete: (task: Task) => void;
     /** 未保存の変更があるかどうかを親に伝える（閉じる前の確認に使う） */
     onDirtyChange: (dirty: boolean) => void;
+    /** チェックリストを変更したとき（その場で保存される） */
+    onSubtasksChanged: () => void;
 }
 
 /** タスクの作成・編集フォーム（ダイアログ・シート・横のパネルで共通） */
@@ -85,6 +88,7 @@ function TaskForm({
     onCancel,
     onDelete,
     onDirtyChange,
+    onSubtasksChanged,
 }: FormProps) {
     const {
         register,
@@ -180,6 +184,19 @@ function TaskForm({
                 />
                 <InputError message={errors.description?.message} />
             </div>
+
+            {/* チェックリスト（編集時のみ。項目はその場で保存される） */}
+            {task ? (
+                <SubtaskList
+                    taskId={task.id}
+                    initialSubtasks={task.subtasks ?? []}
+                    onChanged={onSubtasksChanged}
+                />
+            ) : (
+                <p className="text-xs text-muted-foreground">
+                    チェックリストは、タスクを保存したあとに編集画面から追加できます。
+                </p>
+            )}
 
             <div className="grid grid-cols-1 gap-4 @md:grid-cols-2">
                 {/* 期限 */}

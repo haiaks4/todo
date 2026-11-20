@@ -10,6 +10,7 @@ use App\Http\Requests\Task\StoreTaskRequest;
 use App\Http\Requests\Task\UpdateTaskRequest;
 use App\Models\Task;
 use App\Repositories\Contracts\TaskRepositoryInterface;
+use App\Repositories\TaskRepository;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -43,14 +44,14 @@ class TaskController extends Controller
     {
         $task = $this->taskRepository->create($request->user(), $request->validated());
 
-        return response()->json($task->load('tag'), 201);
+        return response()->json($task->load(TaskRepository::RELATIONS), 201);
     }
 
     public function show(Task $task): JsonResponse
     {
         $this->authorize('view', $task);
 
-        return response()->json($task->load('tag'));
+        return response()->json($task->load(TaskRepository::RELATIONS));
     }
 
     public function update(UpdateTaskRequest $request, Task $task): JsonResponse

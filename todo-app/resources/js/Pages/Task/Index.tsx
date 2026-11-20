@@ -371,6 +371,7 @@ export default function TaskIndex() {
             handleDelete(task);
         },
         onDirtyChange: setEditorDirty,
+        onSubtasksChanged: () => mutateTasks(),
         onRequestClose: requestCloseEditor,
     };
 

@@ -84,6 +84,22 @@ describe('TaskItem', () => {
         expect(screen.getByText('期限切れ')).toBeInTheDocument();
     });
 
+    it('チェックリストがあれば進み具合を表示する', () => {
+        renderItem({
+            task: makeTask({
+                title: 'a',
+                subtasks: [
+                    { id: 1, task_id: 1, title: 'x', is_done: true, order: 1 },
+                    { id: 2, task_id: 1, title: 'y', is_done: false, order: 2 },
+                ],
+            }),
+        });
+        expect(screen.getByText('1/2')).toBeVisible();
+        expect(
+            screen.getByText(/チェックリスト 2 件中\s*1 件完了/),
+        ).toBeInTheDocument();
+    });
+
     it('手動の並び順以外ではドラッグ用のつまみを出さない', () => {
         renderItem({ draggable: false });
         expect(

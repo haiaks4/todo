@@ -10,6 +10,7 @@ import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { api, getErrorMessage, getValidationErrors } from '@/lib/api';
+import { isImeEnter } from '@/lib/keyboard';
 import { parseQuickAdd } from '@/lib/quickAdd';
 import {
     formatDateTime,
@@ -94,13 +95,7 @@ export default function QuickAddInput({ tags, onAdded }: Props) {
                     }}
                     onKeyDown={(e) => {
                         // 日本語入力の変換を確定する Enter では追加しない
-                        // （Safari は確定時の keyCode が 229 になる）
-                        if (
-                            e.key === 'Enter' &&
-                            (e.nativeEvent.isComposing || e.keyCode === 229)
-                        ) {
-                            e.preventDefault();
-                        }
+                        if (isImeEnter(e)) e.preventDefault();
                     }}
                     onFocus={() => setFocused(true)}
                     onBlur={() => setFocused(false)}
