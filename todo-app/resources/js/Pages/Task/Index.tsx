@@ -38,6 +38,7 @@ import ProjectSwitcher, {
     INBOX,
 } from '@/Components/Project/ProjectSwitcher';
 import TagManagerDialog from '@/Components/Tag/TagManagerDialog';
+import CalendarView, { toDateKey } from '@/Components/Task/CalendarView';
 import KanbanBoard from '@/Components/Task/KanbanBoard';
 import QuickAddInput from '@/Components/Task/QuickAddInput';
 import {
@@ -98,7 +99,7 @@ export default function TaskIndex() {
         isSortKey,
     );
     const manualSort = sort === 'manual';
-    // 表示（リスト・かんばん）。端末ごとに覚えておく
+    // 表示（リスト・かんばん・カレンダー）。端末ごとに覚えておく
     const [view, setView] = usePersistentState<TaskView>(
         'tasks.view',
         'list',
@@ -127,6 +128,8 @@ export default function TaskIndex() {
         open: boolean;
         task: Task | null;
         key: number;
+        /** 新規作成のときに最初から入れておく期限（カレンダーの日付から作るとき） */
+        dueDate?: string | null;
     }>({ open: false, task: null, key: 0 });
     const [editorDirty, setEditorDirty] = useState(false);
     // 未保存の変更を破棄してよいか確認中の操作
@@ -437,9 +440,9 @@ export default function TaskIndex() {
         else action();
     };
 
-    const showEditor = (task: Task | null) => {
+    const showEditor = (task: Task | null, dueDate: string | null = null) => {
         setEditorDirty(false);
-        setEditor((prev) => ({ open: true, task, key: prev.key + 1 }));
+        setEditor((prev) => ({ open: true, task, dueDate, key: prev.key + 1 }));
     };
 
     const closeEditor = () => {
@@ -448,6 +451,45 @@ export default function TaskIndex() {
     };
 
     const openCreate = () => guardUnsaved(() => showEditor(null));
+    // カレンダーで選んだ日を期限にして作る（日付だけのときは 23:59。すばやく追加と同じ）
+    const openCreateAt = (date: Date) =>
+        guardUnsaved(() => showEditor(null, `${toDateKey(date)}T23:59`));
+
+    /** カレンダーでタスクを別の日に移す（時刻はそのまま） */
+    const handleMoveDue = async (task: Task, date: Date) => {
+        if (!task.due_date) return;
+        const before = task.due_date;
+        const after = `${toDateKey(date)}${before.slice(10)}`;
+        setLocalTasks((prev) =>
+            prev.map((t) => (t.id === task.id ? { ...t, due_date: after } : t)),
+        );
+        try {
+            await api.tasks.update(task.id, { due_date: after });
+        } catch (e) {
+            toast.error(getErrorMessage(e));
+            mutateTasks();
+            return;
+        }
+        mutateTasks();
+        toast.success(
+            `「${task.title}」の期限を ${date.getMonth() + 1}/${date.getDate()} に変更しました。`,
+            {
+                action: {
+                    label: '元に戻す',
+                    onClick: async () => {
+                        try {
+                            await api.tasks.update(task.id, {
+                                due_date: before,
+                            });
+                        } catch (e) {
+                            toast.error(getErrorMessage(e));
+                        }
+                        mutateTasks();
+                    },
+                },
+            },
+        );
+    };
     const openEdit = (task: Task) => {
         if (editor.open && editor.task?.id === task.id) return;
         guardUnsaved(() => showEditor(task));
@@ -459,6 +501,7 @@ export default function TaskIndex() {
         tags: tags ?? [],
         projects: projects ?? [],
         defaultProjectId: newTaskProjectId,
+        defaultDueDate: editor.dueDate ?? null,
         onSaved: () => {
             closeEditor();
             mutateTasks();
@@ -549,7 +592,6 @@ export default function TaskIndex() {
                             </div>
                             <ViewSwitcher
                                 value={view}
-                                views={['list', 'board']}
                                 onChange={(next) => {
                                     exitSelection();
                                     setReordering(false);
@@ -759,8 +801,8 @@ export default function TaskIndex() {
                             }}
                         />
 
-                        {/* 期限による表示の切り替え */}
-                        {localTasks.length > 0 && (
+                        {/* 期限による表示の切り替え（カレンダーでは使わない） */}
+                        {view !== 'calendar' && localTasks.length > 0 && (
                             <div
                                 role="tablist"
                                 aria-label="期限で表示を切り替え"
@@ -844,6 +886,18 @@ export default function TaskIndex() {
                             <div className="py-12 text-center text-sm text-muted-foreground">
                                 読み込み中...
                             </div>
+                        ) : view === 'calendar' ? (
+                            <CalendarView
+                                tasks={localTasks}
+                                onOpen={openEdit}
+                                onCreateAt={openCreateAt}
+                                onMoveDue={handleMoveDue}
+                                activeTaskId={
+                                    editor.open
+                                        ? (editor.task?.id ?? null)
+                                        : null
+                                }
+                            />
                         ) : view === 'board' ? (
                             <KanbanBoard
                                 tasks={visibleTasks}

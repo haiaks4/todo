@@ -49,6 +49,7 @@ interface FormValues {
 const toFormValues = (
     task: Task | null,
     defaultProjectId: number | null,
+    defaultDueDate: string | null,
 ): FormValues =>
     task
         ? {
@@ -64,7 +65,7 @@ const toFormValues = (
         : {
               title: '',
               description: '',
-              due_date: '',
+              due_date: defaultDueDate ?? '',
               recurrence: NONE,
               priority: NONE,
               status: 'todo',
@@ -94,6 +95,8 @@ interface FormProps {
     projects: Project[];
     /** 新規作成のときに最初から選んでおくプロジェクト */
     defaultProjectId: number | null;
+    /** 新規作成のときに最初から入れておく期限（「2026-11-20T23:59」の形式） */
+    defaultDueDate: string | null;
     onSaved: () => void;
     onCancel: () => void;
     onDelete: (task: Task) => void;
@@ -109,6 +112,7 @@ function TaskForm({
     tags,
     projects,
     defaultProjectId,
+    defaultDueDate,
     onSaved,
     onCancel,
     onDelete,
@@ -124,7 +128,7 @@ function TaskForm({
         watch,
         formState: { errors, isSubmitting, isDirty, dirtyFields },
     } = useForm<FormValues>({
-        defaultValues: toFormValues(task, defaultProjectId),
+        defaultValues: toFormValues(task, defaultProjectId, defaultDueDate),
     });
 
     // 期限を消したら、繰り返しも解除する
