@@ -29,7 +29,7 @@ import {
     RECURRENCE_OPTIONS,
     STATUS_OPTIONS,
 } from '@/lib/task';
-import type { Tag, Task } from '@/types';
+import type { Project, Tag, Task } from '@/types';
 import SubtaskList from './SubtaskList';
 
 /** Select で「未設定」を表す値（Radix の Select は空文字を値にできない） */
@@ -43,9 +43,13 @@ interface FormValues {
     priority: string;
     status: string;
     tag_id: string;
+    project_id: string;
 }
 
-const toFormValues = (task: Task | null): FormValues =>
+const toFormValues = (
+    task: Task | null,
+    defaultProjectId: number | null,
+): FormValues =>
     task
         ? {
               title: task.title,
@@ -55,6 +59,7 @@ const toFormValues = (task: Task | null): FormValues =>
               priority: task.priority ?? NONE,
               status: task.status,
               tag_id: task.tag_id?.toString() ?? NONE,
+              project_id: task.project_id?.toString() ?? NONE,
           }
         : {
               title: '',
@@ -64,6 +69,7 @@ const toFormValues = (task: Task | null): FormValues =>
               priority: NONE,
               status: 'todo',
               tag_id: NONE,
+              project_id: defaultProjectId?.toString() ?? NONE,
           };
 
 const toPayload = (values: FormValues): Record<keyof FormValues, unknown> => ({
@@ -78,12 +84,16 @@ const toPayload = (values: FormValues): Record<keyof FormValues, unknown> => ({
     priority: values.priority === NONE ? null : values.priority,
     status: values.status,
     tag_id: values.tag_id === NONE ? null : Number(values.tag_id),
+    project_id: values.project_id === NONE ? null : Number(values.project_id),
 });
 
 interface FormProps {
     /** 編集するタスク。null のときは新規作成 */
     task: Task | null;
     tags: Tag[];
+    projects: Project[];
+    /** 新規作成のときに最初から選んでおくプロジェクト */
+    defaultProjectId: number | null;
     onSaved: () => void;
     onCancel: () => void;
     onDelete: (task: Task) => void;
@@ -97,6 +107,8 @@ interface FormProps {
 function TaskForm({
     task,
     tags,
+    projects,
+    defaultProjectId,
     onSaved,
     onCancel,
     onDelete,
@@ -111,7 +123,9 @@ function TaskForm({
         setValue,
         watch,
         formState: { errors, isSubmitting, isDirty, dirtyFields },
-    } = useForm<FormValues>({ defaultValues: toFormValues(task) });
+    } = useForm<FormValues>({
+        defaultValues: toFormValues(task, defaultProjectId),
+    });
 
     // 期限を消したら、繰り返しも解除する
     const hasDueDate = !!watch('due_date');
@@ -222,6 +236,43 @@ function TaskForm({
             )}
 
             <div className="grid grid-cols-1 gap-4 @md:grid-cols-2">
+                {/* プロジェクト */}
+                <div className="space-y-2">
+                    <Label htmlFor="task-project">プロジェクト</Label>
+                    <Controller
+                        control={control}
+                        name="project_id"
+                        render={({ field }) => (
+                            <Select
+                                value={field.value}
+                                onValueChange={field.onChange}
+                            >
+                                <SelectTrigger
+                                    id="task-project"
+                                    className="w-full"
+                                    aria-invalid={!!errors.project_id}
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value={NONE}>
+                                        なし（インボックス）
+                                    </SelectItem>
+                                    {projects.map((project) => (
+                                        <SelectItem
+                                            key={project.id}
+                                            value={project.id.toString()}
+                                        >
+                                            {project.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
+                    />
+                    <InputError message={errors.project_id?.message} />
+                </div>
+
                 {/* 期限 */}
                 <div className="space-y-2">
                     <Label htmlFor="task-due-date">期限</Label>

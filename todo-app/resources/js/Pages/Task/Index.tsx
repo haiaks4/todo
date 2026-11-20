@@ -32,6 +32,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
 import ConfirmDialog from '@/Components/ConfirmDialog';
+import ProjectManagerDialog from '@/Components/Project/ProjectManagerDialog';
+import ProjectSwitcher, {
+    ALL_PROJECTS,
+    INBOX,
+} from '@/Components/Project/ProjectSwitcher';
 import TagManagerDialog from '@/Components/Tag/TagManagerDialog';
 import QuickAddInput from '@/Components/Task/QuickAddInput';
 import {
@@ -69,7 +74,7 @@ import {
     STATUS_OPTIONS,
 } from '@/lib/task';
 import { cn } from '@/lib/utils';
-import type { Status, Tag, Task } from '@/types';
+import type { Project, Status, Tag, Task } from '@/types';
 
 /** Select で「すべて」を表す値（Radix の Select は空文字を値にできない） */
 const ALL = 'all';
@@ -93,6 +98,17 @@ export default function TaskIndex() {
 
     // ダイアログ状態
     const [tagManagerOpen, setTagManagerOpen] = useState(false);
+    const [projectManagerOpen, setProjectManagerOpen] = useState(false);
+    // 表示するプロジェクト（'all'・'none'＝インボックス・プロジェクト ID）。端末ごとに覚えておく
+    const [projectId, setProjectId] = usePersistentState(
+        'tasks.project',
+        ALL_PROJECTS,
+    );
+    // 新しいタスクを入れるプロジェクト（プロジェクトを選んでいるときだけ）
+    const newTaskProjectId =
+        projectId === ALL_PROJECTS || projectId === INBOX
+            ? null
+            : Number(projectId);
 
     // 作成・編集画面（key は開くたびにフォームを初期化するために使う）
     const [editor, setEditor] = useState<{
@@ -131,6 +147,7 @@ export default function TaskIndex() {
     if (debouncedSearch) taskParams.set('search', debouncedSearch);
     if (filterStatus !== ALL) taskParams.set('status', filterStatus);
     if (filterTagId !== ALL) taskParams.set('tag_id', filterTagId);
+    if (projectId !== ALL_PROJECTS) taskParams.set('project_id', projectId);
     if (filterPriority !== ALL) taskParams.set('priority', filterPriority);
     if (!manualSort) taskParams.set('sort', sort);
 
@@ -150,6 +167,28 @@ export default function TaskIndex() {
         '/api/tags',
         fetcher,
     );
+
+    const { data: projects, mutate: mutateProjects } = useSWR<Project[]>(
+        '/api/projects',
+        fetcher,
+    );
+
+    // タスクの一覧が変わったら、プロジェクトごとの未完了の件数も取り直す
+    useEffect(() => {
+        if (tasks) mutateProjects();
+    }, [tasks, mutateProjects]);
+
+    // 表示中のプロジェクトが削除されたら、すべてのタスクに戻す
+    useEffect(() => {
+        if (
+            projects &&
+            projectId !== ALL_PROJECTS &&
+            projectId !== INBOX &&
+            !projects.some((p) => p.id.toString() === projectId)
+        ) {
+            setProjectId(ALL_PROJECTS);
+        }
+    }, [projects, projectId, setProjectId]);
 
     // 絞り込み中のタグが削除されたら、タグの絞り込みを解除する
     useEffect(() => {
@@ -406,9 +445,12 @@ export default function TaskIndex() {
     const editorProps = {
         task: editor.task,
         tags: tags ?? [],
+        projects: projects ?? [],
+        defaultProjectId: newTaskProjectId,
         onSaved: () => {
             closeEditor();
             mutateTasks();
+            mutateProjects();
         },
         onDelete: (task: Task) => {
             closeEditor();
@@ -460,6 +502,7 @@ export default function TaskIndex() {
             onDelete={handleDelete}
             onDuplicated={() => mutateTasks()}
             onStatusChange={handleStatusChange}
+            showProject={projectId === ALL_PROJECTS}
         />
     );
 
@@ -477,6 +520,17 @@ export default function TaskIndex() {
                     )}
                 >
                     <div className="min-w-0 space-y-4">
+                        {/* プロジェクトの切り替え */}
+                        <ProjectSwitcher
+                            value={projectId}
+                            onChange={(value) => {
+                                exitSelection();
+                                setProjectId(value);
+                            }}
+                            projects={projects ?? []}
+                            onManage={() => setProjectManagerOpen(true)}
+                        />
+
                         {/* ツールバー */}
                         <div className="flex flex-wrap items-center gap-2">
                             <Button
@@ -670,8 +724,10 @@ export default function TaskIndex() {
                         {/* すばやく追加 */}
                         <QuickAddInput
                             tags={tags ?? []}
+                            projectId={newTaskProjectId}
                             onAdded={(tagCreated) => {
                                 mutateTasks();
+                                mutateProjects();
                                 if (tagCreated) mutateTags();
                             }}
                         />
@@ -908,6 +964,16 @@ export default function TaskIndex() {
                     const action = pendingAction;
                     setPendingAction(null);
                     action?.();
+                }}
+            />
+
+            <ProjectManagerDialog
+                open={projectManagerOpen}
+                onOpenChange={setProjectManagerOpen}
+                projects={projects ?? []}
+                onChanged={() => {
+                    mutateProjects();
+                    mutateTasks();
                 }}
             />
 

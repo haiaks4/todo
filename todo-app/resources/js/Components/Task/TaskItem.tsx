@@ -4,6 +4,7 @@ import {
     CalendarClock,
     Check,
     Copy,
+    Folder,
     GripVertical,
     ListChecks,
     MoreHorizontal,
@@ -66,6 +67,8 @@ interface Props {
     onDelete: (task: Task) => void;
     onDuplicated: () => void;
     onStatusChange: (task: Task, status: Status) => void;
+    /** プロジェクト名を表示する（すべてのタスクを表示しているとき） */
+    showProject?: boolean;
 }
 
 /** 長押しと判定するまでの時間（ミリ秒） */
@@ -86,6 +89,7 @@ export default function TaskItem({
     onDelete,
     onDuplicated,
     onStatusChange,
+    showProject = false,
 }: Props) {
     const {
         attributes,
@@ -368,7 +372,8 @@ export default function TaskItem({
                     >
                         {task.title}
                     </span>
-                    {(task.priority ||
+                    {((showProject && task.project) ||
+                        task.priority ||
                         task.tag ||
                         task.due_date ||
                         subtaskTotal > 0) && (
@@ -381,6 +386,17 @@ export default function TaskItem({
                                 >
                                     優先度 {PRIORITY_LABELS[task.priority]}
                                 </Badge>
+                            )}
+                            {showProject && task.project && (
+                                <span className="inline-flex max-w-40 items-center gap-1 text-xs text-muted-foreground">
+                                    <Folder
+                                        className="size-3.5 shrink-0"
+                                        aria-hidden
+                                    />
+                                    <span className="truncate">
+                                        {task.project.name}
+                                    </span>
+                                </span>
                             )}
                             {task.tag && (
                                 <Badge variant="outline">{task.tag.name}</Badge>

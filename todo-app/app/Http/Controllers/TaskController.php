@@ -34,6 +34,7 @@ class TaskController extends Controller
         $filters = $request->validate([
             'status'   => ['nullable', 'in:todo,in_progress,done'],
             'tag_id'   => ['nullable', 'integer'],
+            'project_id' => ['nullable', 'regex:/^(none|\d+)$/'],
             'priority' => ['nullable', 'in:high,medium,low'],
             'search'   => ['nullable', 'string', 'max:255'],
             'sort'     => ['nullable', 'in:manual,due_date,priority,created_at'],

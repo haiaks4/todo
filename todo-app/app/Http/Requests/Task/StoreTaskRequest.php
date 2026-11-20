@@ -24,6 +24,7 @@ class StoreTaskRequest extends FormRequest
             'recurrence'  => ['nullable', Rule::in(Recurrence::ALL)],
             'status'      => ['nullable', 'in:todo,in_progress,done'],
             'tag_id'      => ['nullable', 'integer', Rule::exists('tags', 'id')->where('user_id', $this->user()->id)->whereNull('deleted_at')],
+            'project_id'  => ['nullable', 'integer', Rule::exists('projects', 'id')->where('user_id', $this->user()->id)],
         ];
     }
 

@@ -5,6 +5,8 @@ export const makeTask = (overrides: Partial<Task> = {}): Task => ({
     id: 1,
     user_id: 1,
     tag_id: null,
+    project_id: null,
+    project: null,
     title: 'テストのタスク',
     description: null,
     due_date: null,

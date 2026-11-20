@@ -16,6 +16,15 @@ export interface Tag {
     user_id: number;
 }
 
+/** タスクをまとめるプロジェクト（リスト） */
+export interface Project {
+    id: number;
+    name: string;
+    order: number;
+    /** 未完了のタスク数 */
+    active_tasks_count: number;
+}
+
 /** タスクの中のチェック項目 */
 export interface Subtask {
     id: number;
@@ -30,6 +39,9 @@ export interface Task {
     user_id: number;
     tag_id: number | null;
     tag: Tag | null;
+    /** null はプロジェクトに入っていない（インボックス） */
+    project_id: number | null;
+    project: Pick<Project, 'id' | 'name'> | null;
     title: string;
     description: string | null;
     due_date: string | null;
