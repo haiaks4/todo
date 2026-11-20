@@ -33,6 +33,7 @@ import { toast } from 'sonner';
 import useSWR from 'swr';
 import ConfirmDialog from '@/Components/ConfirmDialog';
 import TagManagerDialog from '@/Components/Tag/TagManagerDialog';
+import QuickAddInput from '@/Components/Task/QuickAddInput';
 import {
     TaskEditorDialog,
     TaskEditorPanel,
@@ -609,6 +610,15 @@ export default function TaskIndex() {
                                 </Button>
                             )}
                         </div>
+
+                        {/* すばやく追加 */}
+                        <QuickAddInput
+                            tags={tags ?? []}
+                            onAdded={(tagCreated) => {
+                                mutateTasks();
+                                if (tagCreated) mutateTags();
+                            }}
+                        />
 
                         {/* 期限による表示の切り替え */}
                         {localTasks.length > 0 && (

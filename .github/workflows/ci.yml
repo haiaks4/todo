@@ -48,7 +48,7 @@ jobs:
         run: php artisan test
 
   frontend:
-    name: フロントエンド（型チェック・Lint・ビルド）
+    name: フロントエンド（型チェック・Lint・テスト・ビルド）
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -67,6 +67,9 @@ jobs:
 
       - name: Lint・フォーマット（Biome）
         run: npx biome ci --reporter=github
+
+      - name: テスト（フロントエンド）
+        run: npm run test:js
 
       - name: ビルド
         run: npx vite build

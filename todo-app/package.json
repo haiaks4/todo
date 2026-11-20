@@ -6,7 +6,8 @@
         "dev": "vite",
         "lint": "biome lint",
         "format": "biome format --write",
-        "check": "biome check --write"
+        "check": "biome check --write",
+        "test:js": "node --test \"resources/js/**/*.test.mjs\""
     },
     "devDependencies": {
         "@biomejs/biome": "2.6.8",
