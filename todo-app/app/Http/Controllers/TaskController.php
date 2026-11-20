@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Task\BulkDestroyTaskRequest;
 use App\Http\Requests\Task\BulkUpdateStatusTaskRequest;
+use App\Http\Requests\Task\ForceDeleteTaskRequest;
 use App\Http\Requests\Task\ReorderTaskRequest;
 use App\Http\Requests\Task\RestoreTaskRequest;
 use App\Http\Requests\Task\StoreTaskRequest;
@@ -18,6 +19,9 @@ use Inertia\Response;
 
 class TaskController extends Controller
 {
+    /** ごみ箱のタスクを完全に削除するまでの日数（routes/console.php の自動削除で使う） */
+    public const TRASH_RETENTION_DAYS = 30;
+
     public function __construct(private TaskRepositoryInterface $taskRepository) {}
 
     public function index(): Response
@@ -91,6 +95,30 @@ class TaskController extends Controller
     public function restore(RestoreTaskRequest $request): JsonResponse
     {
         $this->taskRepository->restore($request->user(), $request->validated('ids'));
+
+        return response()->json(null, 204);
+    }
+
+    public function trash(): Response
+    {
+        return Inertia::render('Task/Trash', ['retentionDays' => self::TRASH_RETENTION_DAYS]);
+    }
+
+    public function trashed(Request $request): JsonResponse
+    {
+        return response()->json($this->taskRepository->trashed($request->user()));
+    }
+
+    public function forceDelete(ForceDeleteTaskRequest $request): JsonResponse
+    {
+        $this->taskRepository->forceDelete($request->user(), $request->validated('ids'));
+
+        return response()->json(null, 204);
+    }
+
+    public function emptyTrash(Request $request): JsonResponse
+    {
+        $this->taskRepository->emptyTrash($request->user());
 
         return response()->json(null, 204);
     }

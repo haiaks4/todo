@@ -123,6 +123,39 @@ class TaskRepository implements TaskRepositoryInterface
         $user->tasks()->onlyTrashed()->whereIn('id', $ids)->restore();
     }
 
+    public function trashed(User $user): Collection
+    {
+        return $user->tasks()
+            ->onlyTrashed()
+            ->with(self::RELATIONS)
+            ->orderByDesc('deleted_at')
+            ->orderByDesc('id')
+            ->get();
+    }
+
+    public function forceDelete(User $user, array $ids): void
+    {
+        // チェックリストは外部キーの cascade で一緒に消える
+        $user->tasks()->onlyTrashed()->whereIn('id', $ids)->forceDelete();
+    }
+
+    public function emptyTrash(User $user): int
+    {
+        return $user->tasks()->onlyTrashed()->forceDelete();
+    }
+
+    public function purgeTrashedBefore(\DateTimeInterface $before): int
+    {
+        $count = 0;
+        Task::onlyTrashed()
+            ->where('deleted_at', '<', $before)
+            ->chunkById(500, function ($tasks) use (&$count) {
+                $count += Task::onlyTrashed()->whereKey($tasks->modelKeys())->forceDelete();
+            });
+
+        return $count;
+    }
+
     public function bulkUpdateStatus(User $user, array $ids, string $status): void
     {
         DB::transaction(function () use ($user, $ids, $status) {

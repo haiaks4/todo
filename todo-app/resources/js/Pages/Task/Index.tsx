@@ -13,7 +13,7 @@ import {
     sortableKeyboardCoordinates,
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import {
     ArrowDownWideNarrow,
     ArrowUpDown,
@@ -141,6 +141,9 @@ export default function TaskIndex() {
         isLoading: tasksLoading,
     } = useSWR<Task[]>(`/api/tasks?${taskParams.toString()}`, fetcher, {
         keepPreviousData: true,
+        // ごみ箱など別の画面から戻ったとき、直前に取得していても必ず取り直す
+        // （既定では 2 秒以内の再取得をまとめるため、古い一覧が残ることがある）
+        dedupingInterval: 0,
     });
 
     const { data: tags, mutate: mutateTags } = useSWR<Tag[]>(
@@ -349,12 +352,15 @@ export default function TaskIndex() {
     };
 
     const handleDelete = (task: Task) =>
-        deleteWithUndo([task.id], `「${task.title}」を削除しました。`);
+        deleteWithUndo([task.id], `「${task.title}」をごみ箱に移しました。`);
 
     const handleBulkDelete = async () => {
         const ids = selectedIds;
         exitSelection();
-        await deleteWithUndo(ids, `${ids.length} 件のタスクを削除しました。`);
+        await deleteWithUndo(
+            ids,
+            `${ids.length} 件のタスクをごみ箱に移しました。`,
+        );
     };
 
     const handleBulkDone = async () => {
@@ -486,6 +492,17 @@ export default function TaskIndex() {
                             >
                                 <Tags />
                                 タグ管理
+                            </Button>
+                            <Button variant="outline" asChild>
+                                <Link
+                                    href={route('task.trash')}
+                                    aria-label="ごみ箱"
+                                >
+                                    <Trash2 />
+                                    <span className="hidden sm:inline">
+                                        ごみ箱
+                                    </span>
+                                </Link>
                             </Button>
                             {localTasks.length > 0 && (
                                 <div className="ml-auto flex gap-2 sm:hidden">
