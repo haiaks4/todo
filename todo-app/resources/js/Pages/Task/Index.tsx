@@ -38,12 +38,18 @@ import ProjectSwitcher, {
     INBOX,
 } from '@/Components/Project/ProjectSwitcher';
 import TagManagerDialog from '@/Components/Tag/TagManagerDialog';
+import CalendarView, { toDateKey } from '@/Components/Task/CalendarView';
+import KanbanBoard from '@/Components/Task/KanbanBoard';
 import QuickAddInput from '@/Components/Task/QuickAddInput';
 import {
     TaskEditorDialog,
     TaskEditorPanel,
 } from '@/Components/Task/TaskEditor';
 import TaskItem from '@/Components/Task/TaskItem';
+import ViewSwitcher, {
+    isTaskView,
+    type TaskView,
+} from '@/Components/Task/ViewSwitcher';
 import { Button } from '@/Components/ui/button';
 import { Checkbox } from '@/Components/ui/checkbox';
 import { Input } from '@/Components/ui/input';
@@ -93,6 +99,13 @@ export default function TaskIndex() {
         isSortKey,
     );
     const manualSort = sort === 'manual';
+    // 表示（リスト・かんばん・カレンダー）。端末ごとに覚えておく
+    const [view, setView] = usePersistentState<TaskView>(
+        'tasks.view',
+        'list',
+        isTaskView,
+    );
+    const isList = view === 'list';
     // 期限による表示の切り替え（すべて・期限切れ・今日・今週・期限なし）
     const [dueView, setDueView] = useState<DueView>('all');
 
@@ -115,6 +128,8 @@ export default function TaskIndex() {
         open: boolean;
         task: Task | null;
         key: number;
+        /** 新規作成のときに最初から入れておく期限（カレンダーの日付から作るとき） */
+        dueDate?: string | null;
     }>({ open: false, task: null, key: 0 });
     const [editorDirty, setEditorDirty] = useState(false);
     // 未保存の変更を破棄してよいか確認中の操作
@@ -425,9 +440,9 @@ export default function TaskIndex() {
         else action();
     };
 
-    const showEditor = (task: Task | null) => {
+    const showEditor = (task: Task | null, dueDate: string | null = null) => {
         setEditorDirty(false);
-        setEditor((prev) => ({ open: true, task, key: prev.key + 1 }));
+        setEditor((prev) => ({ open: true, task, dueDate, key: prev.key + 1 }));
     };
 
     const closeEditor = () => {
@@ -436,6 +451,45 @@ export default function TaskIndex() {
     };
 
     const openCreate = () => guardUnsaved(() => showEditor(null));
+    // カレンダーで選んだ日を期限にして作る（日付だけのときは 23:59。すばやく追加と同じ）
+    const openCreateAt = (date: Date) =>
+        guardUnsaved(() => showEditor(null, `${toDateKey(date)}T23:59`));
+
+    /** カレンダーでタスクを別の日に移す（時刻はそのまま） */
+    const handleMoveDue = async (task: Task, date: Date) => {
+        if (!task.due_date) return;
+        const before = task.due_date;
+        const after = `${toDateKey(date)}${before.slice(10)}`;
+        setLocalTasks((prev) =>
+            prev.map((t) => (t.id === task.id ? { ...t, due_date: after } : t)),
+        );
+        try {
+            await api.tasks.update(task.id, { due_date: after });
+        } catch (e) {
+            toast.error(getErrorMessage(e));
+            mutateTasks();
+            return;
+        }
+        mutateTasks();
+        toast.success(
+            `「${task.title}」の期限を ${date.getMonth() + 1}/${date.getDate()} に変更しました。`,
+            {
+                action: {
+                    label: '元に戻す',
+                    onClick: async () => {
+                        try {
+                            await api.tasks.update(task.id, {
+                                due_date: before,
+                            });
+                        } catch (e) {
+                            toast.error(getErrorMessage(e));
+                        }
+                        mutateTasks();
+                    },
+                },
+            },
+        );
+    };
     const openEdit = (task: Task) => {
         if (editor.open && editor.task?.id === task.id) return;
         guardUnsaved(() => showEditor(task));
@@ -447,6 +501,7 @@ export default function TaskIndex() {
         tags: tags ?? [],
         projects: projects ?? [],
         defaultProjectId: newTaskProjectId,
+        defaultDueDate: editor.dueDate ?? null,
         onSaved: () => {
             closeEditor();
             mutateTasks();
@@ -516,20 +571,34 @@ export default function TaskIndex() {
                         'mx-auto px-4 sm:px-6 lg:px-8',
                         panelOpen
                             ? 'grid max-w-7xl grid-cols-[minmax(0,1fr)_26rem] items-start gap-6'
-                            : 'max-w-4xl',
+                            : isList
+                              ? 'max-w-4xl'
+                              : 'max-w-6xl',
                     )}
                 >
                     <div className="min-w-0 space-y-4">
-                        {/* プロジェクトの切り替え */}
-                        <ProjectSwitcher
-                            value={projectId}
-                            onChange={(value) => {
-                                exitSelection();
-                                setProjectId(value);
-                            }}
-                            projects={projects ?? []}
-                            onManage={() => setProjectManagerOpen(true)}
-                        />
+                        {/* プロジェクトと表示の切り替え */}
+                        <div className="flex items-center justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                                <ProjectSwitcher
+                                    value={projectId}
+                                    onChange={(value) => {
+                                        exitSelection();
+                                        setProjectId(value);
+                                    }}
+                                    projects={projects ?? []}
+                                    onManage={() => setProjectManagerOpen(true)}
+                                />
+                            </div>
+                            <ViewSwitcher
+                                value={view}
+                                onChange={(next) => {
+                                    exitSelection();
+                                    setReordering(false);
+                                    setView(next);
+                                }}
+                            />
+                        </div>
 
                         {/* ツールバー */}
                         <div className="flex flex-wrap items-center gap-2">
@@ -558,7 +627,7 @@ export default function TaskIndex() {
                                     </span>
                                 </Link>
                             </Button>
-                            {localTasks.length > 0 && (
+                            {isList && localTasks.length > 0 && (
                                 <div className="ml-auto flex gap-2 sm:hidden">
                                     {manualSort && (
                                         <Button
@@ -732,8 +801,8 @@ export default function TaskIndex() {
                             }}
                         />
 
-                        {/* 期限による表示の切り替え */}
-                        {localTasks.length > 0 && (
+                        {/* 期限による表示の切り替え（カレンダーでは使わない） */}
+                        {view !== 'calendar' && localTasks.length > 0 && (
                             <div
                                 role="tablist"
                                 aria-label="期限で表示を切り替え"
@@ -778,7 +847,7 @@ export default function TaskIndex() {
                         )}
 
                         {/* 全選択 */}
-                        {visibleTasks.length > 0 && (
+                        {isList && visibleTasks.length > 0 && (
                             <div className="hidden items-center gap-2 px-3 text-sm text-muted-foreground sm:flex">
                                 <Checkbox
                                     id="select-all"
@@ -817,6 +886,30 @@ export default function TaskIndex() {
                             <div className="py-12 text-center text-sm text-muted-foreground">
                                 読み込み中...
                             </div>
+                        ) : view === 'calendar' ? (
+                            <CalendarView
+                                tasks={localTasks}
+                                onOpen={openEdit}
+                                onCreateAt={openCreateAt}
+                                onMoveDue={handleMoveDue}
+                                activeTaskId={
+                                    editor.open
+                                        ? (editor.task?.id ?? null)
+                                        : null
+                                }
+                            />
+                        ) : view === 'board' ? (
+                            <KanbanBoard
+                                tasks={visibleTasks}
+                                onOpen={openEdit}
+                                onStatusChange={handleStatusChange}
+                                activeTaskId={
+                                    editor.open
+                                        ? (editor.task?.id ?? null)
+                                        : null
+                                }
+                                showProject={projectId === ALL_PROJECTS}
+                            />
                         ) : visibleTasks.length === 0 ? (
                             <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed py-12 text-sm text-muted-foreground">
                                 {isFiltered ? (
